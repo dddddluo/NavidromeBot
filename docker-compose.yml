@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:5.0
+    container_name: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: bot
+      MONGO_INITDB_ROOT_PASSWORD: botpwd
+    ports:
+      - 27017:27017
+  navidrome_bot:
+    image: dddddluo/navidrome_bot:latest
+    container_name: navidrome_bot
+    volumes:
+      - ./config.json:/app/Navidrome/config.json
+      - ./db_backup:/app/Navidrome/db_backup
+      - ./logo.jpg:/app/Navidrome/logo.jpg
+    restart: always
+    depends_on:
+      - mongo
+

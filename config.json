@@ -1,0 +1,25 @@
+{
+  "_comment": "Telegram Bot 配置",
+  "TELEGRAM_BOT_TOKEN": "xxxxxxxxxxx",
+  "_comment_owner": "数据库备份和配置文件备份的所有者的tgid，用于发送备份文件",
+  "OWNER": 111111,
+  "ADMIN_ID": [111111,222222],
+  "ALLOWED_GROUP_IDS": [-1111111111],
+  "TELEGRAM_BOT_NAME": "iuii_music_bot",
+  "GROUP_INVITE_LINK": "https://t.me/iuii_music",
+  "_comment_db": "数据库配置",
+  "DB_NAME": "bot",
+  "DB_URL": "mongodb://bot:botpwd@mongo:27017/bot?authSource=admin",
+  "DB_BACKUP_DIR": "./db_backup",
+  "DB_BACKUP_RETENTION_DAYS": 7,
+  "_comment_api": "Navidrome API 配置",
+  "API_BASE_URL": "http://xxxxx",
+  "NA_ADMIN_USERNAME": "xxx",
+  "NA_ADMIN_PASSWORD": "xxx",
+
+  "_comment_time": "保号时间参数配置，是否开启保号",
+  "TIME_USER": "7d",
+  "TIME_USER_ENABLE": true,
+
+  "_comment_pic": "图片配置 可以是图片链接，不配置则读取项目中的文件"
+}

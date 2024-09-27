@@ -1,0 +1,7 @@
+requests
+python-telegram-bot==21.2
+python-telegram-bot[rate-limiter]==21.2
+python-telegram-bot[job-queue]
+pymongo
+schedule
+pytz
