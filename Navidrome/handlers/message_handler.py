@@ -2,7 +2,8 @@ import logging
 from telegram.ext import ConversationHandler
 from database import exchange_codes_collection, users_collection
 from util import get_now_utc
-from handlers.create_handler import generate_random_password, create_na_user
+from handlers.create_handler import generate_random_password 
+from services.navidrome_client import navidrome_service
 from handlers.start_handler import start
 from config import AWAITING_USERNAME, MESSAGE_HANDLER_TIMEOUT, AWAITING_CODE
 # 创建日志记录器
@@ -51,7 +52,7 @@ async def handle_message(update, context):
         code = context.user_data['code']
         name = username
         # 发送请求创建新用户
-        response = await create_na_user(username, name, password, context)
+        response = await navidrome_service.create_na_user(username, name, password, context)
         if response is not None and response.status_code == 200:
             logger.info(f"User {username} created successfully.")  # 调试日志
             nauser_data = response.json()

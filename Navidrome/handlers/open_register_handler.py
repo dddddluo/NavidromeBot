@@ -6,7 +6,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler, CallbackContext
 from config import AWAITING_OPEN_REGISTER_USERNAME, AWAITING_OPEN_REGISTER_SLOTS, ALLOWED_GROUP_IDS, TELEGRAM_BOT_NAME, MESSAGE_HANDLER_TIMEOUT, START_PIC
 from database import users_collection
-from handlers.create_handler import create_na_user, generate_random_password
+from handlers.create_handler import generate_random_password
+from services.navidrome_client import navidrome_service
 from handlers.permissions import admin_only
 # 注册队列
 
@@ -114,7 +115,7 @@ async def open_register_user_handler(update: Update, context: CallbackContext):
         username = mess
         name = mess
         password = generate_random_password()
-        response = await create_na_user(username, name, password, context)
+        response = await navidrome_service.create_na_user(username, name, password, context)
         if response is not None and response.status_code == 200:
             logger.info(f"User {username} created successfully.")  # 调试日志
             nauser_data = response.json()

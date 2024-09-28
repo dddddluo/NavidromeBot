@@ -3,7 +3,6 @@ import requests
 from telegram.ext import CallbackContext
 from telegram import Update
 from database import users_collection
-from token_manager import get_bearer_token, refresh_bearer_token
 from config import API_BASE_URL
 from handlers.permissions import admin_only
 from util import delete_messages

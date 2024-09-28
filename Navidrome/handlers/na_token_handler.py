@@ -3,9 +3,8 @@ import requests
 from telegram import Update
 from telegram.ext import CallbackContext
 import config
-from token_manager import refresh_bearer_token
 from handlers.permissions import admin_only, private_only
-
+from services.navidrome_client import navidrome_service
 # 创建日志记录器
 logger = logging.getLogger(__name__)
 
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 async def na_token(update: Update, context: CallbackContext):
     global bearer_TOKEN  # 声明全局变量 Navidrome_TOKEN
     if not config.bearer_TOKEN:  # 如果没有令牌，则刷新令牌
-        if not refresh_bearer_token():
+        if not navidrome_service.refresh_bearer_token():
             await update.message.reply_text("Navidrome token获取失败。")
             return
 
