@@ -6,8 +6,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler, CallbackContext
 from config import AWAITING_OPEN_REGISTER_USERNAME, AWAITING_OPEN_REGISTER_SLOTS, ALLOWED_GROUP_IDS, TELEGRAM_BOT_NAME, MESSAGE_HANDLER_TIMEOUT, START_PIC
 from database import users_collection
-from handlers.create_handler import generate_random_password
-from services.navidrome_client import navidrome_service
+from handlers.create_handler import create_na_user, generate_random_password
 from handlers.permissions import admin_only
 # 注册队列
 
@@ -44,11 +43,7 @@ async def close_register_admin_callback(update, context):
                 await context.bot.delete_message(chat_id=group_id, message_id=context.bot_data['open_register_message_id'])
             except Exception as e:
                 logger.error(f"Failed to delete message: {e}")
-            if START_PIC:
-                photo = START_PIC
-                await context.bot.send_photo(chat_id=group_id, photo=photo, caption="虎揍别点了，等下次开放！！")
-            else:
-                await context.bot.send_message(chat_id=group_id, text="虎揍别点了，等下次开放！！")
+            await context.bot.send_photo(chat_id=group_id, photo=START_PIC, caption="虎揍别点了，等下次开放！！")
         context.bot_data.pop('open_register_message_id', None)
         await clear_queue(registration_queue)
         await update.effective_chat.send_message("关闭注册成功")
@@ -74,11 +69,7 @@ async def open_register_admin_num_handler(update, context):
             InlineKeyboardButton(
                 "冲冲冲！！！", url=f"https://t.me/{TELEGRAM_BOT_NAME}")
         ]])
-        if START_PIC:
-            photo = START_PIC
-            open_register_message = await context.bot.send_photo(chat_id=group_id, photo=photo, caption=f"虎揍快来\n当前开放注册名额{num_slots}个", reply_markup=reply_markup)
-        else:
-            open_register_message = await context.bot.send_message(chat_id=group_id, text=f"虎揍快来\n当前开放注册名额{num_slots}个", reply_markup=reply_markup)
+        open_register_message = await context.bot.send_photo(chat_id=group_id, photo=START_PIC, caption=f"虎揍快来\n当前开放注册名额{num_slots}个", reply_markup=reply_markup)
         context.bot_data['open_register_message_id'] = open_register_message.message_id
     return ConversationHandler.END
 
@@ -103,7 +94,7 @@ async def open_register_user_callback(update: Update, context: CallbackContext):
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.message.reply_text(f"请在{MESSAGE_HANDLER_TIMEOUT}s内输入你的Navidrome账号名，退出点 /cancel", reply_markup=reply_markup)
+    await query.edit_message_caption(caption=f"请在{MESSAGE_HANDLER_TIMEOUT}s内输入你的Navidrome账号名，退出点 /cancel", reply_markup=reply_markup)
     return AWAITING_OPEN_REGISTER_USERNAME
 
 
@@ -115,7 +106,7 @@ async def open_register_user_handler(update: Update, context: CallbackContext):
         username = mess
         name = mess
         password = generate_random_password()
-        response = await navidrome_service.create_na_user(username, name, password, context)
+        response = await create_na_user(username, name, password, context)
         if response is not None and response.status_code == 200:
             logger.info(f"User {username} created successfully.")  # 调试日志
             nauser_data = response.json()

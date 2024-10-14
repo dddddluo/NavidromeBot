@@ -18,7 +18,6 @@ async def set_bot_command(context):
     admin_private_commands = default_private_commands + [
         BotCommand('help', '查看帮助信息'),
         BotCommand('new_code', '创建新的兑换码'),
-        BotCommand('list_code', '查看所有的兑换码'),
         BotCommand('del_user', '回复消息或tgid删除Navirome账号'),
         BotCommand('new_line', '新增或修改线路'),
         BotCommand('del_line', '删除线路'),

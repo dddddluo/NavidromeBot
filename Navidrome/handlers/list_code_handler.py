@@ -21,7 +21,7 @@ def escape_markdown_v2(text):
 async def list_code(update: Update, context: CallbackContext):
     # 获取页码
     page = context.user_data.get('code_page', 1)
-    items_per_page = 10
+    items_per_page = 20
     skip = (page - 1) * items_per_page
 
     # 查询数据库
@@ -32,14 +32,17 @@ async def list_code(update: Update, context: CallbackContext):
     page_buttons = []
     if page > 1:
         page_buttons.append(InlineKeyboardButton(
-            "🔙上一页", callback_data=f'code_page_{page-1}'))
+            "🔺上一页", callback_data=f'code_page_{page-1}'))
     if len(all_codes) > items_per_page:
         page_buttons.append(InlineKeyboardButton(
-            "🔜下一页", callback_data=f'code_page_{page+1}'))
+            "🔻下一页", callback_data=f'code_page_{page+1}'))
     if len(all_codes) == 0:
         page_buttons.append(InlineKeyboardButton(
-            "暂无数据", callback_data='close'))
-    reply_markup = InlineKeyboardMarkup([page_buttons])
+            "🚫 暂无数据", callback_data='close'))
+    keyboard = [page_buttons, [
+        InlineKeyboardButton("🔙返回", callback_data='back_to_admin'),
+        InlineKeyboardButton("❌ 关闭", callback_data='close')
+    ]]
     if len(all_codes) > items_per_page:
         all_codes.pop()
     unused_codes = []
@@ -51,22 +54,15 @@ async def list_code(update: Update, context: CallbackContext):
                 f"`{escape_markdown_v2(code['code'])}` 拥有者: {used_by_link}")
         else:
             unused_codes.append(f"`{escape_markdown_v2(code['code'])}`")
-
+    allcount = exchange_codes_collection.count_documents(
+        {"used": {"$eq": False}})
     # 构建回复消息
-    message = "所有兑换码：\n\n"
+    message = f"所有未使用的兑换码总数：{allcount}\n\n"
     if unused_codes:
-        message += "未使用的兑换码：\n" + "\n".join(unused_codes) + "\n\n"
+        message += "\n".join(unused_codes) + "\n"
 
     # 使用 MarkdownV2 格式回复用户
-    if context.user_data.get('code_page_message_id'):
-        try:
-            await context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=context.user_data['code_page_message_id'], text=message, parse_mode='MarkdownV2', reply_markup=reply_markup)
-        except:
-            reply_message = await context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode='MarkdownV2', reply_markup=reply_markup)
-            context.user_data['code_page_message_id'] = reply_message.message_id
-    else:
-        reply_message = await context.bot.send_message(chat_id=update.effective_chat.id, text=message, parse_mode='MarkdownV2', reply_markup=reply_markup)
-        context.user_data['code_page_message_id'] = reply_message.message_id
+    await update.callback_query.edit_message_caption(message, parse_mode='MarkdownV2', reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 async def code_pagination(update: Update, context: CallbackContext):

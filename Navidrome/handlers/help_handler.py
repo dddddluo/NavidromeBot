@@ -8,7 +8,6 @@ async def help(update, context):
             "命令帮助：\n"
             '/help 查看帮助信息 \n'
             '/new_code 创建新的兑换码（默认一个，命令+个数） \n'
-            '/list_code 查看所有的兑换码 \n'
             '/del_user 回复消息或tgid删除Navirome账号(命令+tgid) \n'
             '/new_line 新增或修改线路(命令+名字+线路) \n'
             '/del_line 删除线路(命令+名字) \n'

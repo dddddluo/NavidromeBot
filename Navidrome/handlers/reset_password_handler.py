@@ -2,7 +2,7 @@ import logging
 from telegram import Update
 from telegram.ext import CallbackContext
 from database import users_collection
-from services.navidrome_client import navidrome_service, ServiceResultType
+from Navidrome.services.navidrome_client import navidrome_service, ServiceResultType
 from handlers.permissions import private_only
 
 # 创建日志记录器

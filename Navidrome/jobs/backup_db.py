@@ -9,7 +9,7 @@ from handlers.permissions import admin_only
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import json
 from config import config_path, DB_BACKUP_RETENTION_DAYS
-
+import asyncio
 
 async def backup_db_job(context):
     await context.bot.send_message(chat_id=OWNER, text="备份数据库ing")
@@ -47,12 +47,8 @@ async def backup_db_job(context):
     await context.bot.send_message(chat_id=OWNER, text=f"备份配置文件完成\n文件名：`{dump_config_file}`\n备份数据库完成\n文件名：`{tar_file}`", parse_mode="MarkdownV2")
 
 @admin_only
-async def backup_db(update, context):
-    try:
-        await update.effective_message.delete()
-    except:
-        pass
-    await backup_db_job(context)
+async def backup_db_callback(update, context):
+    await asyncio.gather(update.callback_query.answer(cache_time=5), backup_db_job(context))
 
 
 def dump_db(collections, db, path):

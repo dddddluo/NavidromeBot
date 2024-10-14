@@ -3,7 +3,7 @@ import os
 
 # 从 config.json 读取配置
 config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-print(config_path)
+
 with open(config_path, 'r') as config_file:
     config = json.load(config_file)
 
@@ -38,6 +38,8 @@ if config.get('START_PIC'):
     START_PIC = config.get('START_PIC')  # 初始化图片logo
     if not START_PIC.startswith("http"):
         START_PIC = os.path.join(os.path.dirname(__file__), START_PIC)
+        if not os.path.exists(START_PIC):
+            START_PIC = os.path.join(os.path.dirname(__file__), "logo.jpg")
 else:
     START_PIC = os.path.join(os.path.dirname(__file__), "logo.jpg")  # 初始化图片logo
 MESSAGE_HANDLER_TIMEOUT = 120

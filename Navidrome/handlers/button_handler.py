@@ -6,11 +6,13 @@ from database import users_collection, routes_collection, whitelist_collection
 from handlers.start_handler import start
 from telegram.ext import ConversationHandler, CallbackContext
 from telegram import Update
-from config import ADMIN_ID, AWAITING_CODE, MESSAGE_HANDLER_TIMEOUT
-from datetime import datetime
-from util import CHINA_TZ
+from config import ADMIN_ID, AWAITING_CODE, MESSAGE_HANDLER_TIMEOUT, ALLOWED_GROUP_IDS, TIME_USER_ENABLE
+from datetime import datetime, timezone
+from util import CHINA_TZ, get_now_utc
 from bson.codec_options import CodecOptions
-
+import asyncio
+from handlers.admin_menu import admin_menu
+from handlers.permissions import admin_only
 # 创建日志记录器
 logger = logging.getLogger(__name__)
 
@@ -70,13 +72,9 @@ async def user_info(update: Update, context: CallbackContext):
 
     # 编辑消息以显示用户信息和新按钮
     try:
-        if query.message.text:
-            await query.edit_message_text(text=message, reply_markup=reply_markup, parse_mode='HTML')
-        elif query.message.caption:
-            await query.edit_message_caption(caption=message, reply_markup=reply_markup, parse_mode='HTML')
+        await query.edit_message_caption(caption=message, reply_markup=reply_markup, parse_mode='HTML')
     except Exception as e:
         logger.error(f"Failed to edit message: {e}")
-        await query.message.reply_text(f"发生错误：{str(e)}", parse_mode='HTML')
 
 
 async def server_info(update: Update, context: CallbackContext):
@@ -112,13 +110,9 @@ async def server_info(update: Update, context: CallbackContext):
 
     # 编辑消息以显示线路信息和新按钮
     try:
-        if query.message.text:
-            await query.edit_message_text(text=message, reply_markup=reply_markup, parse_mode='HTML')
-        elif query.message.caption:
-            await query.edit_message_caption(caption=message, reply_markup=reply_markup, parse_mode='HTML')
+        await query.edit_message_caption(caption=message, reply_markup=reply_markup, parse_mode='HTML')
     except Exception as e:
         logger.error(f"Failed to edit message: {e}")
-        await query.message.reply_text(f"发生错误：{str(e)}", parse_mode='HTML')
 
 
 async def use_code(update: Update, context: CallbackContext):
@@ -152,30 +146,84 @@ async def use_code(update: Update, context: CallbackContext):
 
     # 编辑消息以显示使用注册码信息和新按钮
     try:
-        if query.message.text:
-            await query.edit_message_text(text=message, reply_markup=reply_markup, parse_mode='HTML')
-        elif query.message.caption:
-            await query.edit_message_caption(caption=message, reply_markup=reply_markup, parse_mode='HTML')
+        await query.edit_message_caption(caption=message, reply_markup=reply_markup, parse_mode='HTML')
     except Exception as e:
         logger.error(f"Failed to edit message: {e}")
-        await query.message.reply_text(f"发生错误：{str(e)}", parse_mode='HTML')
 
     return AWAITING_CODE
 
 
 async def back_to_start(update: Update, context: CallbackContext):
     try:
-        await update.callback_query.answer(cache_time=5)
-        await start(update, context)
+        await asyncio.gather(update.callback_query.answer(cache_time=5), start(update, context))
     except Exception as e:
         logger.error(f"Failed to back to start: {e}")
     return ConversationHandler.END
 
+async def back_to_admin(update: Update, context: CallbackContext):
+    try:
+        await asyncio.gather(update.callback_query.answer(cache_time=5), admin_menu(update, context))
+    except Exception as e:
+        logger.error(f"Failed to back to admin: {e}")
+    return ConversationHandler.END
 
 async def close(update: Update, context: CallbackContext):
     try:
-        await update.callback_query.answer(cache_time=5)
-        await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=update.effective_message.message_id)
+        await asyncio.gather(update.callback_query.message.delete())
     except Exception as e:
         logger.error(f"Failed to delete message: {e}")
     return ConversationHandler.END
+
+async def check_in(update: Update, context: CallbackContext):
+    query = update.callback_query  # 获取回调查询
+    user = query.from_user  # 获取点击按钮的用户信息
+    user_id = user.id
+    logger.info(
+        f"收到签到消息，来自用户 {user.username}（ID: {user_id})")
+
+    user_data = users_collection.with_options(codec_options=CodecOptions(
+        tz_aware=True,
+        tzinfo=CHINA_TZ)).find_one({"telegram_id": user_id})
+    if not TIME_USER_ENABLE:
+        await query.answer(text="未开启签到保号，请放心使用！", show_alert=True, cache_time=5)
+        return
+    now = get_now_utc()
+    if not user_data:
+        # 如果用户不存在于数据库中，插入用户数据
+        users_collection.insert_one({
+            "telegram_id": user_id,
+            "username": user.username,
+            "last_check_in": now,
+            "created_at": now
+        })
+        nowstr = now.astimezone(CHINA_TZ).strftime('%Y-%m-%d %H:%M:%S')
+        await query.message.reply_text(f"签到成功！\n签到时间：{nowstr}")
+        await query.answer(text=f"签到成功！\n签到时间：{nowstr}", show_alert=True, cache_time=5)
+        logger.info(
+            f"新用户 {user.username}（ID: {user_id}） 注册并签到成功。")
+    else:
+        today_zero = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        last_check_in = user_data.get('last_check_in')
+        # 确保 last_check_in 是带时区的
+        if last_check_in and last_check_in.tzinfo is None:
+            last_check_in = last_check_in.replace(
+                tzinfo=timezone.utc)
+        if last_check_in is None or last_check_in < today_zero:
+            # 如果用户的最后签到时间小于今天0点，则更新最后签到时间
+            users_collection.update_one(
+                {"telegram_id": user_id},
+                {"$set": {"last_check_in": now}}
+            )
+            nowstr = now.astimezone(CHINA_TZ).strftime('%Y-%m-%d %H:%M:%S')
+            await query.message.reply_text(f"签到成功！\n签到时间：{nowstr}")
+            await query.answer(text=f"签到成功！\n签到时间：{nowstr}", show_alert=True, cache_time=5)
+            logger.info(
+                f"用户 {user.username}（ID: {user_id}） 签到成功。")
+        else:
+            await query.answer(text="虎揍！不要重复签到，再发给你关小黑屋！！", show_alert=True, cache_time=5)
+            logger.info(
+                f"用户 {user.username}（ID: {user_id}） 重复签到。")
+
+@admin_only
+async def admin_menu_callback(update: Update, context: CallbackContext):
+    await asyncio.gather(update.callback_query.answer(cache_time=5), admin_menu(update, context))
