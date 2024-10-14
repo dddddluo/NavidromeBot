@@ -22,6 +22,7 @@ from jobs.set_bot_command import set_bot_command_scheduler
 from jobs.backup_db import backup_db_scheduler, backup_db_callback
 from handlers.view_users_handler import view_users, view_users_pagination, view_whitelist, view_whitelist_pagination
 from config import TELEGRAM_BOT_TOKEN, AWAITING_CODE, AWAITING_USERNAME, AWAITING_OPEN_REGISTER_USERNAME, AWAITING_OPEN_REGISTER_SLOTS, MESSAGE_HANDLER_TIMEOUT
+
 # 设置日志
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

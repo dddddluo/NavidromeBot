@@ -1,13 +1,11 @@
 import logging
-import requests
 from telegram.ext import CallbackContext
 from telegram import Update
 from database import users_collection, whitelist_collection
-from token_manager import get_bearer_token, refresh_bearer_token
-from config import API_BASE_URL, ALLOWED_GROUP_IDS
+from config import ALLOWED_GROUP_IDS
 from handlers.permissions import admin_only
 from util import delete_messages
-
+from services.navidrome_client import navidrome_service
 # 创建日志记录器
 logger = logging.getLogger(__name__)
 
@@ -32,36 +30,15 @@ async def delete_user_by_telegram_id(telegram_id, context: CallbackContext):
     if not user_id:
         return 400, mention, "Navidrome中没有此虎揍！"
 
-    url = f"{API_BASE_URL}/api/user/{user_id}"
+    response_data, status = await navidrome_service.delete_user(user_id)
 
-    headers = {
-        'X-Nd-Authorization': f'Bearer {get_bearer_token()}',
-        'Content-Type': 'application/json'
-    }
-
-    response = requests.delete(url, headers=headers)
-
-    # 如果未认证，尝试刷新令牌并重试请求
-    if response.status_code == 401:  # 未认证
-        logger.info("Token 已过期，正在获取新的令牌。")
-        if refresh_bearer_token():
-            headers['X-Nd-Authorization'] = f'Bearer {get_bearer_token()}'
-            response = requests.delete(url, headers=headers)
-            if response.status_code == 200:
-                users_collection.delete_one({"telegram_id": telegram_id})
-                return 200, mention, "这虎揍的账号已删除"
-            else:
-                return 400, mention, f"删除用户失败：{response.text}"
-        else:
-            return 400, mention, "删除用户失败：无法刷新令牌。"
-
-    if response.status_code == 200:
+    if status == 200:
         # 从数据库中删除用户记录
         users_collection.delete_one({"telegram_id": telegram_id})
         whitelist_collection.delete_one({"telegram_id": telegram_id})
         return 200, mention, "这虎揍的账号已删除"
     else:
-        return 400, mention, f"删除用户失败：{response.text}"
+        return 400, mention, f"删除用户失败：{response_data}"
 
 # 处理删除用户命令的函数
 

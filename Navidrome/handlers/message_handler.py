@@ -2,7 +2,7 @@ import logging
 from telegram.ext import ConversationHandler
 from database import exchange_codes_collection, users_collection
 from util import get_now_utc
-from handlers.create_handler import generate_random_password, create_na_user
+from services.navidrome_client import navidrome_service
 from handlers.start_handler import start
 from config import AWAITING_USERNAME, MESSAGE_HANDLER_TIMEOUT, AWAITING_CODE
 # 创建日志记录器
@@ -47,15 +47,14 @@ async def handle_message(update, context):
         logger.info(f"Awaiting username from user: {user.username}")  # 调试日志
         # 用户正在输入用户名
         username = text.strip()
-        password = generate_random_password()
+        password = navidrome_service.generate_random_password()
         code = context.user_data['code']
         name = username
         # 发送请求创建新用户
-        response = await create_na_user(username, name, password, context)
-        if response is not None and response.status_code == 200:
+        response, status_code = await navidrome_service.create_na_user(username, name, password)
+        if status_code == 200:
             logger.info(f"User {username} created successfully.")  # 调试日志
-            nauser_data = response.json()
-            user_id = nauser_data.get("id")  # 获取用户ID
+            user_id = response.get("id")  # 获取用户ID
 
             # 标记兑换码为已使用，并记录使用者的信息和使用时间
             exchange_codes_collection.update_one(
@@ -90,13 +89,16 @@ async def handle_message(update, context):
             context.user_data.clear()
             return ConversationHandler.END
         else:
-            logger.error(
-                f"Failed to create user: {response.text if response else 'Unknown error'}")  # 调试日志
-            if "ra.validation.unique" in response.text:
-                await update.message.reply_text("虎揍换个用户名！")
-                return AWAITING_USERNAME
+            logger.error(f"Failed to create user: {response}")  # 调试日志
+            if isinstance(response, dict) and 'errors' in response:
+                errors = response['errors']
+                if 'userName' in errors and errors['userName'] == 'ra.validation.unique':
+                    await update.message.reply_text("虎揍用户名重复啦！\n请在120s内对我发送你的用户名\n退出点 /cancel")
+                    return AWAITING_USERNAME
+                else:
+                    await update.message.reply_text("创建用户失败，请稍后重试。")
             else:
-                await update.message.reply_text("创建用户失败")
+                await update.message.reply_text("创建用户失败，请稍后重试。")
             context.user_data.clear()
             return ConversationHandler.END
 

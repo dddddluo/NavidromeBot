@@ -1,6 +1,8 @@
 import json
-import requests
+import aiohttp
 import logging
+import random
+import string
 from config import API_BASE_URL, NA_ADMIN_USERNAME, NA_ADMIN_PASSWORD, LOGIN_URL
 
 logger = logging.getLogger(__name__)
@@ -13,8 +15,17 @@ class NavidromeService:
     def __init__(self):
         self.base_url = API_BASE_URL
         self.bearer_token = None
+        self.session = None
 
-    def refresh_bearer_token(self):
+    async def create_session(self):
+        if self.session is None or self.session.closed:
+            self.session = aiohttp.ClientSession()
+
+    async def close_session(self):
+        if self.session and not self.session.closed:
+            await self.session.close()
+
+    async def refresh_bearer_token(self):
         payload = {
             "username": NA_ADMIN_USERNAME,
             "password": NA_ADMIN_PASSWORD
@@ -23,17 +34,23 @@ class NavidromeService:
             'Content-Type': 'application/json'
         }
         logger.info(f"尝试从 {LOGIN_URL} 获取新的 Navidrome 令牌")
-        response = requests.post(LOGIN_URL, json=payload, headers=headers)
-        logger.info(f"登录响应: {response.status_code} - {response.text}")
-        if response.status_code == 200:
-            self.bearer_token = response.json().get("token")
-            logger.info("Navidrome 令牌刷新成功。")
-            return True
-        else:
-            logger.error("获取新的 Navidrome 令牌失败。")
+        await self.create_session()
+        try:
+            async with self.session.post(LOGIN_URL, json=payload, headers=headers) as response:
+                logger.info(f"登录响应: {response.status}")
+                if response.status == 200:
+                    data = await response.json()
+                    self.bearer_token = data.get("token")
+                    logger.info("Navidrome 令牌刷新成功。")
+                    return True
+                else:
+                    logger.error("获取新的 Navidrome 令牌失败。")
+                    return False
+        except aiohttp.ClientError as e:
+            logger.error(f"刷新令牌时发生错误: {e}")
             return False
 
-    def _make_request(self, method, endpoint, payload=None, headers=None):
+    async def _make_request(self, method, endpoint, payload=None, headers=None):
         url = f"{self.base_url}{endpoint}"
         default_headers = {
             'X-Nd-Authorization': f'Bearer {self.bearer_token}',
@@ -41,49 +58,55 @@ class NavidromeService:
         }
         headers = headers or default_headers
 
+        await self.create_session()
         try:
-            response = requests.request(method, url, headers=headers, json=payload)
-            if response.status_code == 401:
-                logger.info("Navidrome token 已过期，正在获取新的令牌。")
-                if self.refresh_bearer_token():
-                    headers['X-Nd-Authorization'] = f'Bearer {self.bearer_token}'
-                    response = requests.request(method, url, headers=headers, json=payload)
-                else:
-                    logger.error("刷新 Navidrome token 失败。")
-                    return None
-            return response
-        except requests.RequestException as e:
+            async with self.session.request(method, url, headers=headers, json=payload) as response:
+                if response.status == 401:
+                    logger.info("Navidrome token 已过期，正在获取新的令牌。")
+                    if await self.refresh_bearer_token():
+                        headers['X-Nd-Authorization'] = f'Bearer {self.bearer_token}'
+                        async with self.session.request(method, url, headers=headers, json=payload) as new_response:
+                            return await new_response.json(), new_response.status
+                    else:
+                        logger.error("刷新 Navidrome token 失败。")
+                        return None, 401
+                return await response.json(), response.status
+        except aiohttp.ClientError as e:
             logger.error(f"请求失败: {e}")
-            return None
+            return None, None
 
-    def create_na_user(self, username, name, password):
+    async def create_na_user(self, username, name, password):
         payload = {
             "isAdmin": False,
             "userName": username,
             "name": name,
             "password": password
         }
-        return self._make_request('POST', '/api/user', payload)
+        return await self._make_request('POST', '/api/user', payload)
 
-    def delete_user(self, user_id):
-        return self._make_request('DELETE', f'/api/user/{user_id}')
+    async def delete_user(self, user_id):
+        return await self._make_request('DELETE', f'/api/user/{user_id}')
 
-    def reset_password(self, user_id, name, username, new_password):
+    async def reset_password(self, user_id, name, username, new_password):
         payload = {
             "userName": username,
             "name": name,
             "changePassword": True,
             "password": new_password
         }
-        response = self._make_request('PUT', f'/api/user/{user_id}', payload)
-        logger.info(f"{user_id}重置密码为{new_password}，结果: {response.text if response else 'Request failed'}")
-        if response and response.status_code == 200:
+        response_data, status = await self._make_request('PUT', f'/api/user/{user_id}', payload)
+        logger.info(f"{user_id}重置密码为{new_password}，结果: {response_data if response_data else 'Request failed'}, 状态码: {status}")
+        if status == 200:
             return ServiceResultType.SUCCESS
         else:
             return ServiceResultType.ERROR
 
-    def check_token(self):
-        response = self._make_request('GET', '/api/translation/zh-Hans')
-        return response.status_code == 200 if response else False
+    async def check_token(self):
+        _, status = await self._make_request('GET', '/api/translation/zh-Hans')
+        return status == 200 if status is not None else False
+
+    def generate_random_password(self, length=8):
+        characters = string.ascii_letters + string.digits
+        return ''.join(random.choices(characters, k=length))
 
 navidrome_service = NavidromeService()

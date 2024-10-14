@@ -3,7 +3,7 @@ import requests
 from telegram import Update
 from telegram.ext import CallbackContext
 import config
-from token_manager import refresh_bearer_token
+from services.navidrome_client import navidrome_service
 from handlers.permissions import admin_only, private_only
 
 # 创建日志记录器
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def na_token(update: Update, context: CallbackContext):
     global bearer_TOKEN  # 声明全局变量 Navidrome_TOKEN
     if not config.bearer_TOKEN:  # 如果没有令牌，则刷新令牌
-        if not refresh_bearer_token():
+        if not await navidrome_service.refresh_bearer_token():
             await update.message.reply_text("Navidrome token获取失败。")
             return
 
@@ -40,7 +40,7 @@ async def na_token(update: Update, context: CallbackContext):
     else:
         if response.status_code == 401:  # 如果响应状态码为 401，表示未认证
             logger.info("bearer token expired, fetching a new one.")
-            if refresh_bearer_token():  # 刷新 Navidrome 令牌
+            if await navidrome_service.refresh_bearer_token():  # 刷新 Navidrome 令牌
                 bearer_TOKEN = config.bearer_TOKEN  # 更新令牌
                 await update.message.reply_text("bearer token已自动更新。")
                 logger.info("bearer token has been refreshed.")

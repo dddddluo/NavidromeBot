@@ -1,7 +1,7 @@
-requests
 python-telegram-bot==21.2
 python-telegram-bot[rate-limiter]==21.2
-python-telegram-bot[job-queue]
-pymongo
-schedule
-pytz
+python-telegram-bot[job-queue]==21.2
+pymongo==4.9.1
+schedule==1.2.2
+pytz==2024.2
+aiohttp==3.10.10
