@@ -6,7 +6,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler, CallbackContext
 from config import AWAITING_OPEN_REGISTER_USERNAME, AWAITING_OPEN_REGISTER_SLOTS, ALLOWED_GROUP_IDS, TELEGRAM_BOT_NAME, MESSAGE_HANDLER_TIMEOUT, START_PIC
 from database import users_collection
-from services.navidrome_client import navidrome_service
+from services.navidrome_client import navidrome_service, ResponseCode
 from handlers.permissions import admin_only
 # 注册队列
 
@@ -106,10 +106,10 @@ async def open_register_user_handler(update: Update, context: CallbackContext):
         username = mess
         name = mess
         password = navidrome_service.generate_random_password()
-        response, status_code = await navidrome_service.create_na_user(username, name, password)
-        if status_code == 200:
+        response = await navidrome_service.create_na_user(username, name, password)
+        if response.code == 200:
             logger.info(f"User {username} created successfully.")  # 调试日志
-            user_id = response.get("id")  # 获取用户ID
+            user_id = response.data.get("id")  # 获取用户ID
             if users_collection.find_one({"telegram_id": tgid}):
                 users_collection.update_one(
                     {"telegram_id": tgid},
@@ -137,13 +137,9 @@ async def open_register_user_handler(update: Update, context: CallbackContext):
             context.user_data.clear()
         else:
             logger.error(f"Failed to create user: {response}")  # 调试日志
-            if isinstance(response, dict) and 'errors' in response:
-                errors = response['errors']
-                if 'userName' in errors and errors['userName'] == 'ra.validation.unique':
-                    await update.message.reply_text("虎揍用户名重复啦！\n请在120s内对我发送你的用户名\n退出点 /cancel")
-                    return AWAITING_OPEN_REGISTER_USERNAME
-                else:
-                    await update.message.reply_text("创建用户失败，请稍后重试。")
+            if response.code == ResponseCode.USERNAME_EXISTS:
+                await update.message.reply_text("虎揍用户名重复啦！\n请在120s内对我发送你的用户名\n退出点 /cancel")
+                return AWAITING_OPEN_REGISTER_USERNAME
             else:
                 await update.message.reply_text("创建用户失败，请稍后重试。")
             context.user_data.clear()

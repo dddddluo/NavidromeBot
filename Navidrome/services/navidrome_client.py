@@ -7,9 +7,21 @@ from config import API_BASE_URL, NA_ADMIN_USERNAME, NA_ADMIN_PASSWORD, LOGIN_URL
 
 logger = logging.getLogger(__name__)
 
-class ServiceResultType:
-    SUCCESS = "success"
-    ERROR = "error"
+class ResponseCode:
+    USERNAME_EXISTS = 5001,
+    TOKEN_EXPIRED = 401
+    SERVER_ERROR = 500
+
+error_message = {
+    ResponseCode.USERNAME_EXISTS: "虎揍换个用户名！用户名重复啦！",
+    ResponseCode.TOKEN_EXPIRED: "Navidrome token 已过期，正在获取新的令牌。",
+    ResponseCode.SERVER_ERROR: "服务器内部错误"
+}
+class ApiResponse:
+    def __init__(self, code, message, data=None):
+        self.code = code
+        self.message = message
+        self.data = data
 
 class NavidromeService:
     def __init__(self):
@@ -61,19 +73,21 @@ class NavidromeService:
         await self.create_session()
         try:
             async with self.session.request(method, url, headers=headers, json=payload) as response:
-                if response.status == 401:
+                if response.status == ResponseCode.TOKEN_EXPIRED:
                     logger.info("Navidrome token 已过期，正在获取新的令牌。")
                     if await self.refresh_bearer_token():
                         headers['X-Nd-Authorization'] = f'Bearer {self.bearer_token}'
                         async with self.session.request(method, url, headers=headers, json=payload) as new_response:
-                            return await new_response.json(), new_response.status
+                            data = await new_response.json()
+                            return ApiResponse(new_response.status, "请求成功" if new_response.status == 200 else "请求失败", data)
                     else:
                         logger.error("刷新 Navidrome token 失败。")
-                        return None, 401
-                return await response.json(), response.status
+                        return ApiResponse(ResponseCode.TOKEN_EXPIRED, "认证失败")
+                data = await response.json()
+                return ApiResponse(response.status, "请求成功" if response.status == 200 else "请求失败", data)
         except aiohttp.ClientError as e:
             logger.error(f"请求失败: {e}")
-            return None, None
+            return ApiResponse(500, "服务器内部错误")
 
     async def create_na_user(self, username, name, password):
         payload = {
@@ -82,7 +96,18 @@ class NavidromeService:
             "name": name,
             "password": password
         }
-        return await self._make_request('POST', '/api/user', payload)
+        response = await self._make_request('POST', '/api/user', payload)
+        if response.code == 200:
+            return response
+        else:
+            if isinstance(response.data, dict) and 'errors' in response.data:
+                errors = response.data['errors']
+                if 'userName' in errors and errors['userName'] == 'ra.validation.unique':
+                    return ApiResponse(ResponseCode.USERNAME_EXISTS, error_message[ResponseCode.USERNAME_EXISTS], response.data)
+                else:
+                    return ApiResponse(ResponseCode.SERVER_ERROR, "创建用户失败，请稍后重试。")
+            else:
+                return ApiResponse(ResponseCode.SERVER_ERROR, "创建用户失败，请稍后重试。")
 
     async def delete_user(self, user_id):
         return await self._make_request('DELETE', f'/api/user/{user_id}')
@@ -94,16 +119,13 @@ class NavidromeService:
             "changePassword": True,
             "password": new_password
         }
-        response_data, status = await self._make_request('PUT', f'/api/user/{user_id}', payload)
-        logger.info(f"{user_id}重置密码为{new_password}，结果: {response_data if response_data else 'Request failed'}, 状态码: {status}")
-        if status == 200:
-            return ServiceResultType.SUCCESS
-        else:
-            return ServiceResultType.ERROR
+        response = await self._make_request('PUT', f'/api/user/{user_id}', payload)
+        logger.info(f"{user_id}重置密码为{new_password}，结果: {response.data if response.data else 'Request failed'}, 状态码: {response.code}")
+        return response
 
     async def check_token(self):
-        _, status = await self._make_request('GET', '/api/translation/zh-Hans')
-        return status == 200 if status is not None else False
+        response = await self._make_request('GET', '/api/translation/zh-Hans')
+        return response
 
     def generate_random_password(self, length=8):
         characters = string.ascii_letters + string.digits

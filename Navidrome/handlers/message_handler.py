@@ -2,7 +2,7 @@ import logging
 from telegram.ext import ConversationHandler
 from database import exchange_codes_collection, users_collection
 from util import get_now_utc
-from services.navidrome_client import navidrome_service
+from services.navidrome_client import navidrome_service, ResponseCode
 from handlers.start_handler import start
 from config import AWAITING_USERNAME, MESSAGE_HANDLER_TIMEOUT, AWAITING_CODE
 # 创建日志记录器
@@ -51,10 +51,10 @@ async def handle_message(update, context):
         code = context.user_data['code']
         name = username
         # 发送请求创建新用户
-        response, status_code = await navidrome_service.create_na_user(username, name, password)
-        if status_code == 200:
+        response = await navidrome_service.create_na_user(username, name, password)
+        if response.code == 200:
             logger.info(f"User {username} created successfully.")  # 调试日志
-            user_id = response.get("id")  # 获取用户ID
+            user_id = response.data.get("id")  # 获取用户ID
 
             # 标记兑换码为已使用，并记录使用者的信息和使用时间
             exchange_codes_collection.update_one(
@@ -90,13 +90,9 @@ async def handle_message(update, context):
             return ConversationHandler.END
         else:
             logger.error(f"Failed to create user: {response}")  # 调试日志
-            if isinstance(response, dict) and 'errors' in response:
-                errors = response['errors']
-                if 'userName' in errors and errors['userName'] == 'ra.validation.unique':
-                    await update.message.reply_text("虎揍用户名重复啦！\n请在120s内对我发送你的用户名\n退出点 /cancel")
-                    return AWAITING_USERNAME
-                else:
-                    await update.message.reply_text("创建用户失败，请稍后重试。")
+            if response.code == ResponseCode.USERNAME_EXISTS:
+                await update.message.reply_text("虎揍用户名重复啦！\n请在120s内对我发送你的用户名\n退出点 /cancel")
+                return AWAITING_USERNAME
             else:
                 await update.message.reply_text("创建用户失败，请稍后重试。")
             context.user_data.clear()

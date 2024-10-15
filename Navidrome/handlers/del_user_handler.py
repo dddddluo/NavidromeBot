@@ -30,15 +30,15 @@ async def delete_user_by_telegram_id(telegram_id, context: CallbackContext):
     if not user_id:
         return 400, mention, "Navidrome中没有此虎揍！"
 
-    response_data, status = await navidrome_service.delete_user(user_id)
+    result = await navidrome_service.delete_user(user_id)
 
-    if status == 200:
+    if result.code == 200:
         # 从数据库中删除用户记录
         users_collection.delete_one({"telegram_id": telegram_id})
         whitelist_collection.delete_one({"telegram_id": telegram_id})
         return 200, mention, "这虎揍的账号已删除"
     else:
-        return 400, mention, f"删除用户失败：{response_data}"
+        return 400, mention, f"删除用户失败：{result.data}"
 
 # 处理删除用户命令的函数
 

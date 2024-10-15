@@ -2,7 +2,7 @@ import logging
 from telegram import Update
 from telegram.ext import CallbackContext
 from database import users_collection
-from services.navidrome_client import navidrome_service, ServiceResultType
+from services.navidrome_client import navidrome_service
 from handlers.permissions import private_only
 
 # 创建日志记录器
@@ -28,7 +28,7 @@ async def reset_password(update: Update, context: CallbackContext):
         return
     await query.answer(cache_time=5)
     result = await navidrome_service.reset_password(user_id, name, username, new_password)
-    if result == ServiceResultType.SUCCESS:
+    if result.code == 200:
         await update.effective_chat.send_message(text=f"虎揍你的新鲜密码为: `{new_password}`", parse_mode="MarkdownV2")
     else:
         await update.effective_chat.send_message(text="重置密码失败。")
