@@ -1,4 +1,6 @@
 import logging
+import os
+from logging.handlers import TimedRotatingFileHandler
 from telegram import Update
 from telegram.ext import filters, ApplicationBuilder, MessageHandler, CommandHandler, CallbackQueryHandler, AIORateLimiter, ConversationHandler, TypeHandler
 from handlers.permissions import restricted
@@ -24,9 +26,24 @@ from handlers.view_users_handler import view_users, view_users_pagination, view_
 from config import TELEGRAM_BOT_TOKEN, AWAITING_CODE, AWAITING_USERNAME, AWAITING_OPEN_REGISTER_USERNAME, AWAITING_OPEN_REGISTER_SLOTS, MESSAGE_HANDLER_TIMEOUT
 
 # 设置日志
+log_dir = 'logs'
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+log_file = os.path.join(log_dir, 'telegram_bot.log')
+
+file_handler = TimedRotatingFileHandler(
+    log_file,
+    when="midnight",
+    interval=1,
+    backupCount=7,
+    encoding='utf-8'
+)
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
+    handlers=[file_handler]
 )
 logger = logging.getLogger(__name__)
 
