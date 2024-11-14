@@ -21,9 +21,15 @@ from handlers.time_user_handler import delete_inactive_callback
 from handlers.reset_password_handler import reset_password
 from handlers.open_register_handler import open_register_user_callback, open_register_user_handler, open_register_admin_callback, open_register_admin_num_handler, close_register_admin_callback
 from jobs.set_bot_command import set_bot_command_scheduler
-from jobs.backup_db import backup_db_scheduler, backup_db_callback
+from jobs.backup_db import backup_db_scheduler, backup_db_callback, list_backup_files, restore_db_callback
 from handlers.view_users_handler import view_users, view_users_pagination, view_whitelist, view_whitelist_pagination
 from config import TELEGRAM_BOT_TOKEN, AWAITING_CODE, AWAITING_USERNAME, AWAITING_OPEN_REGISTER_USERNAME, AWAITING_OPEN_REGISTER_SLOTS, MESSAGE_HANDLER_TIMEOUT
+from handlers.broadcast_handler import (
+    broadcast_message_callback, handle_broadcast_message,
+    handle_target_selection, handle_pin_confirmation,
+    delete_broadcast_callback, handle_delete_broadcast,
+    AWAITING_BROADCAST_MESSAGE, AWAITING_TARGET_SELECTION, AWAITING_PIN_CONFIRMATION
+)
 
 # 设置日志
 log_dir = 'logs'
@@ -78,90 +84,128 @@ view_whitelist_pagination = restricted(view_whitelist_pagination)
 def main():
     print(TELEGRAM_BOT_TOKEN)
     dispatcher = ApplicationBuilder().connect_timeout(10).read_timeout(10).write_timeout(10).token(TELEGRAM_BOT_TOKEN).rate_limiter(AIORateLimiter(overall_max_rate=0, overall_time_period=0, group_max_rate=0, group_time_period=0, max_retries=5)).build()
+    
+    # 添加广播消息处理器
+    broadcast_conv_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(broadcast_message_callback, pattern="^broadcast_message$")],
+        states={
+            AWAITING_BROADCAST_MESSAGE: [MessageHandler(filters.ALL & ~filters.COMMAND, handle_broadcast_message)],
+            AWAITING_TARGET_SELECTION: [CallbackQueryHandler(handle_target_selection, pattern="^broadcast_")],
+            AWAITING_PIN_CONFIRMATION: [CallbackQueryHandler(handle_pin_confirmation, pattern="^pin_|^no_pin$|^cancel_broadcast$")],
+        },
+        fallbacks=[
+            CommandHandler('cancel', cancel),
+            CallbackQueryHandler(back_to_admin, pattern="^back_to_admin$"),
+            CallbackQueryHandler(close, pattern="^close$"),
+            MessageHandler(filters.COMMAND, cancel),
+        ],
+        conversation_timeout=MESSAGE_HANDLER_TIMEOUT,
+        name="broadcast_conversation",
+        persistent=False
+    )
+    
     # 定义对话处理器
     use_code_conv_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(use_code, pattern="^use_code"), CommandHandler("start", start)],
+        entry_points=[CallbackQueryHandler(use_code, pattern="^use_code$"), CommandHandler("start", start)],
         states={
-            AWAITING_CODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message),],
-            AWAITING_USERNAME: [MessageHandler(
-                filters.TEXT & ~filters.COMMAND, handle_message)],
+            AWAITING_CODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)],
+            AWAITING_USERNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)],
             ConversationHandler.TIMEOUT: [TypeHandler(Update, timeout)]
         },
-        fallbacks=[CommandHandler('cancel', cancel),
-                   CallbackQueryHandler(
-                       back_to_start, pattern="^back_to_start"),
-                   CallbackQueryHandler(close, pattern="^close$")],
-        conversation_timeout=MESSAGE_HANDLER_TIMEOUT
+        fallbacks=[
+            CommandHandler('cancel', cancel),
+            CallbackQueryHandler(back_to_start, pattern="^back_to_start$"),
+            CallbackQueryHandler(close, pattern="^close$"),
+            MessageHandler(filters.COMMAND, cancel),
+        ],
+        conversation_timeout=MESSAGE_HANDLER_TIMEOUT,
+        per_message=True
     )
-    dispatcher.add_handler(use_code_conv_handler)
+    
     open_register_conv_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(open_register_user_callback, pattern="^open_register_user")],
+        entry_points=[CallbackQueryHandler(open_register_user_callback, pattern="^open_register_user$")],
         states={
             AWAITING_OPEN_REGISTER_USERNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, open_register_user_handler)],
             ConversationHandler.TIMEOUT: [TypeHandler(Update, timeout)]
         },
-        fallbacks=[CommandHandler('cancel', cancel),
-                   CallbackQueryHandler(back_to_start, pattern="^back_to_start"),
-                   CallbackQueryHandler(close, pattern="^close$")],
-        conversation_timeout=MESSAGE_HANDLER_TIMEOUT
+        fallbacks=[
+            CommandHandler('cancel', cancel),
+            CallbackQueryHandler(back_to_start, pattern="^back_to_start$"),
+            CallbackQueryHandler(close, pattern="^close$"),
+            MessageHandler(filters.COMMAND, cancel),
+        ],
+        conversation_timeout=MESSAGE_HANDLER_TIMEOUT,
+        per_message=True
     )
-    dispatcher.add_handler(open_register_conv_handler)
+    
     opne_register_admin_conv_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(open_register_admin_callback, pattern="^open_register_admin")],
+        entry_points=[CallbackQueryHandler(open_register_admin_callback, pattern="^open_register_admin$")],
         states={
-            AWAITING_OPEN_REGISTER_SLOTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, open_register_admin_num_handler),],
+            AWAITING_OPEN_REGISTER_SLOTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, open_register_admin_num_handler)],
             ConversationHandler.TIMEOUT: [TypeHandler(Update, timeout)]
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
-        conversation_timeout=MESSAGE_HANDLER_TIMEOUT
+        fallbacks=[
+            CommandHandler('cancel', cancel),
+            CallbackQueryHandler(back_to_admin, pattern="^back_to_admin$"),
+            CallbackQueryHandler(close, pattern="^close$"),
+            MessageHandler(filters.COMMAND, cancel),
+        ],
+        conversation_timeout=MESSAGE_HANDLER_TIMEOUT,
+        per_message=True
     )
-    dispatcher.add_handler(opne_register_admin_conv_handler)
-     # 添加命令处理器
-    dispatcher.add_handler(CommandHandler("start", start))  # 初始化
-    dispatcher.add_handler(CommandHandler("help", help))  # 获取帮助
-    dispatcher.add_handler(CommandHandler("new_line", new_line))  # 添加线路（名字+线路）
-    dispatcher.add_handler(CommandHandler("del_line", del_line))  # 删除线路（命令+名字）
-    dispatcher.add_handler(CommandHandler(
-        "new_code", new_code))  # 创建新的邀请码（默认一个）
-    dispatcher.add_handler(CallbackQueryHandler(list_code, pattern="^list_code"))  # 查看兑换码
-    dispatcher.add_handler(CommandHandler(
-        "na_token", na_token))  # 检测Navidrome Token
+    
+    # 修改处理器的添加顺序
+    # 1. 先添加命令处理器
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("help", help))
+    dispatcher.add_handler(CommandHandler("new_line", new_line))
+    dispatcher.add_handler(CommandHandler("del_line", del_line))
+    dispatcher.add_handler(CommandHandler("new_code", new_code))
+    dispatcher.add_handler(CommandHandler("na_token", na_token))
     dispatcher.add_handler(CommandHandler("del_user", del_user))
     dispatcher.add_handler(CommandHandler("add_whitelist", add_whitelist))
     dispatcher.add_handler(CommandHandler("del_whitelist", del_whitelist))
-    dispatcher.add_handler(MessageHandler(
-        filters.StatusUpdate.LEFT_CHAT_MEMBER, handle_left_chat_member))  # 处理用户退出群组事件
-    dispatcher.add_handler(check_in_handler)  # 添加签到消息处理器
-    dispatcher.add_handler(CallbackQueryHandler(
-        back_to_start, pattern="^back_to_start"))  # 返回start界面
-    dispatcher.add_handler(CallbackQueryHandler(
-        back_to_admin, pattern="^back_to_admin"))  # 返回admin界面
-    dispatcher.add_handler(CallbackQueryHandler(
-        close, pattern="^close$"))  # 关闭消息
-    dispatcher.add_handler(CallbackQueryHandler(
-        user_info, pattern="^user_info"))  # 用户功能
-    dispatcher.add_handler(CallbackQueryHandler(
-        server_info, pattern="^server_info"))  # 服务器
-    dispatcher.add_handler(CallbackQueryHandler(
-        check_in, pattern="^check_in"))  # 签到
-    dispatcher.add_handler(CallbackQueryHandler(
-        reset_password, pattern="^reset_password"))  # 重置密码
-    dispatcher.add_handler(CallbackQueryHandler(
-        admin_menu_callback, pattern="^admin_menu"))  # 管理面板
-    dispatcher.add_handler(CallbackQueryHandler(
-        delete_inactive_callback, pattern="^delete_inactive"))  # 删除不活跃用户
-    # 添加回调查询处理器
+    
+    # 2. 添加消息处理器
+    dispatcher.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, handle_left_chat_member))
+    dispatcher.add_handler(check_in_handler)
+    
+    # 3. 添加所有 ConversationHandler
+    dispatcher.add_handler(broadcast_conv_handler)
+    dispatcher.add_handler(use_code_conv_handler)
+    dispatcher.add_handler(open_register_conv_handler)
+    dispatcher.add_handler(opne_register_admin_conv_handler)
+    
+    # 4. 添加管理菜单相关的回调查询处理器
+    dispatcher.add_handler(CallbackQueryHandler(admin_menu_callback, pattern="^admin_menu$"))
+    dispatcher.add_handler(CallbackQueryHandler(back_to_admin, pattern="^back_to_admin$"))
+    dispatcher.add_handler(CallbackQueryHandler(delete_broadcast_callback, pattern="^delete_broadcast$"))
+    dispatcher.add_handler(CallbackQueryHandler(handle_delete_broadcast, pattern="^del_broadcast_[a-f0-9]+$"))
+    
+    # 5. 添加其他回调查询处理器
+    dispatcher.add_handler(CallbackQueryHandler(list_code, pattern="^list_code$"))
+    dispatcher.add_handler(CallbackQueryHandler(back_to_start, pattern="^back_to_start$"))
+    dispatcher.add_handler(CallbackQueryHandler(close, pattern="^close$"))
+    dispatcher.add_handler(CallbackQueryHandler(user_info, pattern="^user_info$"))
+    dispatcher.add_handler(CallbackQueryHandler(server_info, pattern="^server_info$"))
+    dispatcher.add_handler(CallbackQueryHandler(check_in, pattern="^check_in$"))
+    dispatcher.add_handler(CallbackQueryHandler(reset_password, pattern="^reset_password$"))
+    dispatcher.add_handler(CallbackQueryHandler(delete_inactive_callback, pattern="^delete_inactive$"))
     dispatcher.add_handler(CallbackQueryHandler(code_pagination, pattern='^code_page_'))
-    dispatcher.add_handler(CallbackQueryHandler(backup_db_callback, pattern="^backup_db"))  # 备份数据库
-    dispatcher.add_handler(CallbackQueryHandler(view_users, pattern="^view_users"))  # 查看用户
-    dispatcher.add_handler(CallbackQueryHandler(view_users_pagination, pattern="^users_page_"))  # 查看用户分页
-    dispatcher.add_handler(CallbackQueryHandler(view_whitelist, pattern="^view_whitelist"))  # 查看白名单
-    dispatcher.add_handler(CallbackQueryHandler(view_whitelist_pagination, pattern="^whitelist_page_"))  # 查看白名单分页
-    dispatcher.add_handler(CallbackQueryHandler(close_register_admin_callback, pattern="^close_register_admin"))
+    dispatcher.add_handler(CallbackQueryHandler(backup_db_callback, pattern="^backup_db$"))
+    dispatcher.add_handler(CallbackQueryHandler(view_users, pattern="^view_users$"))
+    dispatcher.add_handler(CallbackQueryHandler(view_users_pagination, pattern="^users_page_"))
+    dispatcher.add_handler(CallbackQueryHandler(view_whitelist, pattern="^view_whitelist$"))
+    dispatcher.add_handler(CallbackQueryHandler(view_whitelist_pagination, pattern="^whitelist_page_"))
+    dispatcher.add_handler(CallbackQueryHandler(close_register_admin_callback, pattern="^close_register_admin$"))
+    dispatcher.add_handler(CallbackQueryHandler(list_backup_files, pattern="^restore_db$"))
+    dispatcher.add_handler(CallbackQueryHandler(restore_db_callback, pattern="^restore_mongo_backup_"))
+    
     # 启动调度器
     start_scheduler(dispatcher)
     set_bot_command_scheduler(dispatcher)
     backup_db_scheduler(dispatcher)
+    
     # 启动机器人
     dispatcher.run_polling(allowed_updates=Update.ALL_TYPES)
 

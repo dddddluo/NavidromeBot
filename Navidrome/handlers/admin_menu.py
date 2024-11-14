@@ -15,8 +15,15 @@ async def admin_menu(update, context):
         ],
         [
             InlineKeyboardButton("📚备份数据库", callback_data='backup_db'),
+            InlineKeyboardButton("💾恢复数据库", callback_data='restore_db'),
+        ],
+        [
             InlineKeyboardButton("✅开放注册", callback_data='open_register_admin'),
             InlineKeyboardButton("❎关闭注册", callback_data='close_register_admin'),
+        ],
+        [
+            InlineKeyboardButton("📢消息广播", callback_data='broadcast_message'),
+            InlineKeyboardButton("🗑️删除广播", callback_data='delete_broadcast'),
         ],
         [
             InlineKeyboardButton("🔙返回", callback_data='back_to_start'),

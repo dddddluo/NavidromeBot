@@ -10,6 +10,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import json
 from config import config_path, DB_BACKUP_RETENTION_DAYS
 import asyncio
+import glob
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 async def backup_db_job(context):
     await context.bot.send_message(chat_id=OWNER, text="备份数据库ing")
@@ -91,21 +93,32 @@ def restore(path, db):
     MongoDB Restore
 
     :param path: Database dumped path
-    :param conn: MongoDB client connection
-    :param db_name: Database name
-    :return:
-
-    >>> DB_BACKUP_DIR = '/path/backups/'
-    >>> conn = MongoClient("mongodb://admin:admin@127.0.0.1:27017", authSource="admin")
-    >>> db_name = 'my_db'
-    >>> restore(DB_BACKUP_DIR, conn, db_name)
-
+    :param db: MongoDB database instance
+    :return: None
     """
-
-    for coll in os.listdir(path):
-        if coll.endswith('.bson'):
-            with open(os.path.join(path, coll), 'rb+') as f:
-                db[coll.split('.')[0]].insert_many(bson.decode_all(f.read()))
+    try:
+        # 只处理.bson文件
+        for filename in os.listdir(path):
+            if filename.endswith('.bson'):
+                # 从文件名中提取集合名（去掉路径和.bson后缀）
+                collection_name = os.path.basename(filename).replace('.bson', '')
+                file_path = os.path.join(path, filename)
+                
+                # 确保文件存在且是文件
+                if os.path.isfile(file_path):
+                    with open(file_path, 'rb') as f:
+                        data = bson.decode_all(f.read())
+                        if data:  # 只在有数据时插入
+                            try:
+                                # 先删除现有集合
+                                db[collection_name].drop()
+                                # 插入恢复的数据
+                                db[collection_name].insert_many(data)
+                                print(f"已恢复集合 {collection_name}，插入了 {len(data)} 条记录")
+                            except Exception as e:
+                                raise Exception(f"恢复集合 {collection_name} 时出错：{str(e)}")
+    except Exception as e:
+        raise Exception(f"恢复数据时出错：{str(e)}")
 # 初始化调度器
 scheduler = AsyncIOScheduler()
 
@@ -114,3 +127,123 @@ def backup_db_scheduler(dispatcher):
     scheduler.add_job(backup_db_job, 'cron', hour=4,
                       minute=0, second=0, args=[dispatcher])
     scheduler.start()
+
+async def list_backup_files(update, context):
+    # 确保使用绝对路径
+    backup_dir = os.path.abspath(DB_BACKUP_DIR)
+    
+    try:
+        # 检查目录是否存在
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir, exist_ok=True)
+        
+        # 检查目录权限
+        if not os.access(backup_dir, os.R_OK | os.W_OK):
+            await update.callback_query.answer("备份目录权限不足！", show_alert=True)
+            return
+        
+        # 使用绝对路径查找备份文件
+        backup_files = []
+        backup_pattern = os.path.join(backup_dir, 'mongo_backup_*.tar.gz')
+        for filename in glob.glob(backup_pattern):
+            if os.path.isfile(filename):  # 确保是文件而不是目录
+                backup_files.append(os.path.basename(filename))
+        
+        if not backup_files:
+            await update.callback_query.answer("没有找到可用的备份文件！", show_alert=True)
+            return
+        
+        # 创建键盘按钮
+        keyboard = []
+        for file in sorted(backup_files, reverse=True):
+            keyboard.append([InlineKeyboardButton(file, callback_data=f"restore_{file}")])
+        
+        keyboard.append([InlineKeyboardButton("🔙返回", callback_data='admin_menu')])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        # 更新消息
+        await update.callback_query.edit_message_caption(
+            caption="请选择要恢复的备份文件：",
+            reply_markup=reply_markup
+        )
+            
+    except Exception as e:
+        await update.callback_query.answer(f"处理备份文件列表时出错", show_alert=True)
+
+@admin_only
+async def restore_db_callback(update, context):
+    query = update.callback_query
+    file_name = query.data.replace("restore_", "")
+    
+    await query.answer("正在恢复数据库，请稍候...", show_alert=True)
+    
+    try:
+        backup_path = os.path.join(DB_BACKUP_DIR, file_name)
+        temp_dir = os.path.join(DB_BACKUP_DIR, "temp_restore")
+        
+        # 确保备份文件存在
+        if not os.path.isfile(backup_path):
+            raise FileNotFoundError(f"备份文件不存在：{backup_path}")
+        
+        # 创建临时目录
+        if os.path.exists(temp_dir):
+            # 清理已存在的临时目录
+            for root, dirs, files in os.walk(temp_dir, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+            os.rmdir(temp_dir)
+        
+        os.makedirs(temp_dir)
+        
+        # 解压备份文件
+        with tarfile.open(backup_path, "r:gz") as tar:
+            # 修正解压路径问题
+            for member in tar.getmembers():
+                if member.name.endswith('.bson'):
+                    # 修改member的名称，只保留文件名
+                    member.name = os.path.basename(member.name)
+                    tar.extract(member, temp_dir)
+        
+        # 恢复数据
+        restore(temp_dir, db)
+        
+        # 清理临时文件
+        for root, dirs, files in os.walk(temp_dir, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+        os.rmdir(temp_dir)
+        
+        # 返回管理菜单
+        keyboard = [
+            [InlineKeyboardButton("🔙返回管理菜单", callback_data='admin_menu')]
+        ]
+        await update.callback_query.edit_message_caption(
+            caption="✅ 数据库恢复已完成！",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+    except Exception as e:
+        # 返回错误提示
+        keyboard = [
+            [InlineKeyboardButton("🔙返回管理菜单", callback_data='admin_menu')]
+        ]
+        await update.callback_query.edit_message_caption(
+            caption="❌ 数据库恢复失败！",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+        # 确保清理临时目录
+        try:
+            if os.path.exists(temp_dir):
+                for root, dirs, files in os.walk(temp_dir, topdown=False):
+                    for name in files:
+                        os.remove(os.path.join(root, name))
+                    for name in dirs:
+                        os.rmdir(os.path.join(root, name))
+                os.rmdir(temp_dir)
+        except Exception:
+            pass

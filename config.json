@@ -10,7 +10,7 @@
   "_comment_db": "数据库配置",
   "DB_NAME": "bot",
   "DB_URL": "mongodb://bot:botpwd@mongo:27017/bot?authSource=admin",
-  "DB_BACKUP_DIR": "./db_backup",
+  "DB_BACKUP_DIR": "/app/Navidrome/db_backup",
   "DB_BACKUP_RETENTION_DAYS": 7,
   "_comment_api": "Navidrome API 配置",
   "API_BASE_URL": "http://xxxxx",

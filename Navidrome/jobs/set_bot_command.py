@@ -24,7 +24,6 @@ async def set_bot_command(context):
         BotCommand('add_whitelist', '回复消息或tgid添加白名单'),
         BotCommand('del_whitelist', '回复消息或tgid删除白名单'),
         BotCommand('delete_inactive', '删除非活跃用户'),
-        BotCommand('backup_db', '备份数据库'),
         BotCommand('na_token', '手动刷新Navirome Token'),
     ]
     admin_group_commands = [BotCommand('new_code', '创建新的兑换码'),
@@ -32,7 +31,6 @@ async def set_bot_command(context):
                             BotCommand('add_whitelist', '回复消息添加白名单'),
                             BotCommand('del_whitelist', '回复消息删除白名单'),
                             BotCommand('delete_inactive', '删除非活跃用户'),
-                            BotCommand('backup_db', '备份数据库'),
                             ]
     await asyncio.gather(context.bot.delete_my_commands(scope=BotCommandScopeAllGroupChats()),  # 删除所有群聊指令
                          context.bot.delete_my_commands(scope=BotCommandScopeAllPrivateChats()))  # 删除所有私聊命令
