@@ -36,10 +36,10 @@
 ## 保号周期配置
 
 * `TIME_USER` - 保号周期，可配置单位d（天）h（小时）m（分钟）s（秒） 如：7d, 1h, 1m, 1s
-
+* `TIME_USER_ENABLE` - true 是否开启签到保号
 ## logo配置
 
-* `START_PIC` - Bot发送消息图片，可以设置为http图床链接，也可以是本地文件的路径
+* `START_PIC` - Bot发送消息图片，可以设置为http图床链接，也可以是本地文件的路径，如果留空使用内置的默认图片
 
 # 安装与启动
 ## 没有安装mongo数据库，使用docker-compose启动mongo数据库和bot
@@ -74,6 +74,5 @@
 /add_whitelist - 回复消息或tgid添加白名单
 /del_whitelist - 回复消息或tgid删除白名单
 /delete_inactive - 删除非活跃用户
-/backup_db - 备份数据库
 /na_token - 手动刷新Navirome Token
 ```
