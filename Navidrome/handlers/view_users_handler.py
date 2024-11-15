@@ -36,7 +36,7 @@ async def view_users(update, context):
     allcount = users_collection.count_documents(query_filter)
     text = f"用户总数：{allcount}\n"
     for user in users:
-        text += f"TGID：<code>{user['telegram_id']}</code> - Navidrome：{user['username']}\n"
+        text += f"TGID：<code>{user['telegram_id']}</code> - Navidrome：<a href='tg://user?id={user['telegram_id']}'>{user['username']}</a>\n"
     await update.callback_query.edit_message_caption(text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
 
 
@@ -78,7 +78,7 @@ async def view_whitelist(update, context):
         telegram_id = whitelist_user['telegram_id']
         user = users_collection.find_one({'telegram_id': telegram_id})
         username = user['username'] if user else '未知用户名'
-        text += f"TGID：<code>{telegram_id}</code> - Navidrome：{username}\n"
+        text += f"TGID：<code>{telegram_id}</code> - Navidrome：<a href='tg://user?id={telegram_id}'>{username}</a>\n"
     
     await update.callback_query.edit_message_caption(text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
 
