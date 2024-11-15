@@ -92,6 +92,7 @@ def main():
             AWAITING_BROADCAST_MESSAGE: [MessageHandler(filters.ALL & ~filters.COMMAND, handle_broadcast_message)],
             AWAITING_TARGET_SELECTION: [CallbackQueryHandler(handle_target_selection, pattern="^broadcast_")],
             AWAITING_PIN_CONFIRMATION: [CallbackQueryHandler(handle_pin_confirmation, pattern="^pin_|^no_pin$|^cancel_broadcast$")],
+            ConversationHandler.TIMEOUT: [TypeHandler(Update, timeout)]
         },
         fallbacks=[
             CommandHandler('cancel', cancel),
@@ -100,9 +101,9 @@ def main():
             MessageHandler(filters.COMMAND, cancel),
         ],
         conversation_timeout=MESSAGE_HANDLER_TIMEOUT,
-        name="broadcast_conversation",
-        persistent=False
     )
+    dispatcher.add_handler(broadcast_conv_handler)
+
     
     # 定义对话处理器
     use_code_conv_handler = ConversationHandler(
@@ -119,8 +120,9 @@ def main():
             MessageHandler(filters.COMMAND, cancel),
         ],
         conversation_timeout=MESSAGE_HANDLER_TIMEOUT,
-        per_message=True
     )
+    dispatcher.add_handler(use_code_conv_handler)
+
     
     open_register_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(open_register_user_callback, pattern="^open_register_user$")],
@@ -135,9 +137,9 @@ def main():
             MessageHandler(filters.COMMAND, cancel),
         ],
         conversation_timeout=MESSAGE_HANDLER_TIMEOUT,
-        per_message=True
     )
-    
+    dispatcher.add_handler(open_register_conv_handler)
+
     opne_register_admin_conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(open_register_admin_callback, pattern="^open_register_admin$")],
         states={
@@ -151,9 +153,9 @@ def main():
             MessageHandler(filters.COMMAND, cancel),
         ],
         conversation_timeout=MESSAGE_HANDLER_TIMEOUT,
-        per_message=True
     )
-    
+    dispatcher.add_handler(opne_register_admin_conv_handler)
+
     # 修改处理器的添加顺序
     # 1. 先添加命令处理器
     dispatcher.add_handler(CommandHandler("start", start))
@@ -169,12 +171,6 @@ def main():
     # 2. 添加消息处理器
     dispatcher.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, handle_left_chat_member))
     dispatcher.add_handler(check_in_handler)
-    
-    # 3. 添加所有 ConversationHandler
-    dispatcher.add_handler(broadcast_conv_handler)
-    dispatcher.add_handler(use_code_conv_handler)
-    dispatcher.add_handler(open_register_conv_handler)
-    dispatcher.add_handler(opne_register_admin_conv_handler)
     
     # 4. 添加管理菜单相关的回调查询处理器
     dispatcher.add_handler(CallbackQueryHandler(admin_menu_callback, pattern="^admin_menu$"))
