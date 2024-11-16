@@ -1,9 +1,11 @@
 import json
 import os
-
+import logging
 # 从 config.json 读取配置
 config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+logger = logging.getLogger(__name__)
 
+global config
 with open(config_path, 'r') as config_file:
     config = json.load(config_file)
 
@@ -20,6 +22,7 @@ bearer_TOKEN = None  # 全局变量，用于存储 Navidrome 令牌
 # 数据库配置
 DB_NAME = config.get('DB_NAME')  # 数据库名称
 DB_URL = config.get('DB_URL')  # 数据库 URL，包含连接字符串
+BACKUP_DB_ENABLE = config.get('BACKUP_DB_ENABLE', True)  # 数据库备份开关
 DB_BACKUP_DIR = config.get('DB_BACKUP_DIR')  # 数据库备份目录
 DB_BACKUP_RETENTION_DAYS = config.get('DB_BACKUP_RETENTION_DAYS')  # 数据库备份保留期限
 # Navidrome API 配置
@@ -45,3 +48,18 @@ else:
 MESSAGE_HANDLER_TIMEOUT = 120
 AWAITING_CODE, AWAITING_USERNAME, AWAITING_OPEN_REGISTER_USERNAME,AWAITING_OPEN_REGISTER_SLOTS, \
 AWAITING_BROADCAST_MESSAGE, AWAITING_TARGET_SELECTION, AWAITING_PIN_CONFIRMATION = range(7)
+
+def update_config(key: str, value: bool):
+    """更新配置文件和内存中的配置"""
+    global config  # 声明使用全局变量
+    try:
+        # 更新内存中的配置
+        config[key] = value
+        
+        # 更新配置文件
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+            
+        logger.info(f"配置 {key} 已更新为 {value}")
+    except Exception as e:
+        logger.error(f"更新配置文件失败: {str(e)}") 

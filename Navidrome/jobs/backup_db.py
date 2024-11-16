@@ -13,7 +13,8 @@ import asyncio
 import glob
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from services.navidrome_client import navidrome_service, ApiResponse
-
+import logging
+logger = logging.getLogger(__name__)
 
 async def backup_db_job(context):
     await context.bot.send_message(chat_id=OWNER, text="备份数据库ing")
@@ -127,7 +128,7 @@ def restore(path, db):
                                 db[collection_name].drop()
                                 # 插入恢复的数据
                                 db[collection_name].insert_many(data)
-                                print(
+                                logger.info(
                                     f"已恢复集合 {collection_name}，插入了 {len(data)} 条记录")
                             except Exception as e:
                                 raise Exception(
@@ -304,7 +305,7 @@ async def restore_db_sync_navidrome(update, context):
                     success_count += 1
             except Exception as e:
                 fail_count += 1
-                print(f"创建用户 {user['username']} 失败: {str(e)}")
+                logger.error(f"创建用户 {user['username']} 失败: {str(e)}")
 
     # 返回结果消息
     result_message = "✅ 同步到Navidrome已完成！"

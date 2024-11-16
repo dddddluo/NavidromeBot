@@ -3,7 +3,7 @@ import logging
 import os
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
-from config import START_PIC, ADMIN_ID, TIME_USER_ENABLE
+from config import START_PIC, ADMIN_ID, config
 from database import exchange_codes_collection, users_collection
 from config import AWAITING_USERNAME
 import asyncio
@@ -48,6 +48,7 @@ async def start(update, context):
             InlineKeyboardButton("🎟️用注册码", callback_data='use_code')
         ]
     ]
+    TIME_USER_ENABLE = config.get('TIME_USER_ENABLE', True)
     if TIME_USER_ENABLE:
         keyboard[0].append(
             InlineKeyboardButton("🔔签到", callback_data='check_in')

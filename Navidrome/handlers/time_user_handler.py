@@ -5,12 +5,11 @@ from telegram import Update
 from telegram.ext import CallbackContext, MessageHandler, filters
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database import users_collection, whitelist_collection
-from config import ALLOWED_GROUP_IDS, ADMIN_ID, TIME_USER, TIME_USER_ENABLE
+from config import ALLOWED_GROUP_IDS, ADMIN_ID, TIME_USER, config
 from util import delete_messages, get_now_utc, CHINA_TZ
 from handlers.permissions import admin_only
 from handlers.del_user_handler import delete_user_by_telegram_id
 from bson.codec_options import CodecOptions
-import asyncio
 # 创建日志记录器
 logger = logging.getLogger(__name__)
 
@@ -48,6 +47,7 @@ async def handle_check_in(update: Update, context: CallbackContext):
     user_data = users_collection.with_options(codec_options=CodecOptions(
         tz_aware=True,
         tzinfo=CHINA_TZ)).find_one({"telegram_id": user_id})
+    TIME_USER_ENABLE = config.get('TIME_USER_ENABLE', True)
     if not TIME_USER_ENABLE:
         reply_message = await update.message.reply_text("未开启签到保号，请放心使用！")
         # 等待五秒后删除用户消息和bot的回复
@@ -78,7 +78,6 @@ async def handle_check_in(update: Update, context: CallbackContext):
     else:
         today_zero = now.replace(hour=0, minute=0, second=0, microsecond=0)
         last_check_in = user_data.get('last_check_in')
-        print(last_check_in)
         # 确保 last_check_in 是带时区的
         if last_check_in and last_check_in.tzinfo is None:
             last_check_in = last_check_in.replace(
@@ -113,12 +112,12 @@ async def handle_check_in(update: Update, context: CallbackContext):
 
 
 async def delete_inactive_users(context: CallbackContext):
+    TIME_USER_ENABLE = config.get('TIME_USER_ENABLE', True)
     if TIME_USER_ENABLE:
         logger.info("Running scheduled task to delete inactive users.")
 
         threshold_date = get_now_utc() - TIME_DELTA
         logger.info(f"Threshold date for deletion: {threshold_date}")
-        print(threshold_date)
         inactive_users = users_collection.find({
             "$or": [
                 {"last_check_in": {"$lt": threshold_date}},
@@ -154,6 +153,7 @@ async def delete_inactive_users(context: CallbackContext):
 @admin_only
 async def delete_inactive_callback(update, context):
     await update.callback_query.answer(cache_time=5)
+    TIME_USER_ENABLE = config.get('TIME_USER_ENABLE', True)
     if TIME_USER_ENABLE:
         await update.callback_query.message.reply_text("正在删除不活跃用户...")
         await delete_inactive_users(context)
@@ -166,6 +166,7 @@ scheduler = AsyncIOScheduler()
 
 
 def start_scheduler(dispatcher):
+    TIME_USER_ENABLE = config.get('TIME_USER_ENABLE', True)
     if TIME_USER_ENABLE:
         # 添加定时任务 每天0点0分0秒 执行一次
         scheduler.add_job(delete_inactive_users, 'cron', hour=0,

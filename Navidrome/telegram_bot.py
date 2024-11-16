@@ -30,6 +30,7 @@ from handlers.broadcast_handler import (
     delete_broadcast_callback, handle_delete_broadcast,
     AWAITING_BROADCAST_MESSAGE, AWAITING_TARGET_SELECTION, AWAITING_PIN_CONFIRMATION
 )
+from handlers.task_control_handler import task_control_menu, toggle_backup, toggle_time_user
 
 # 设置日志
 log_dir = 'logs'
@@ -80,6 +81,9 @@ view_users = restricted(view_users)
 view_users_pagination = restricted(view_users_pagination)
 view_whitelist = restricted(view_whitelist)
 view_whitelist_pagination = restricted(view_whitelist_pagination)
+task_control_menu = restricted(task_control_menu)
+toggle_backup = restricted(toggle_backup)
+toggle_time_user = restricted(toggle_time_user)
 
 def main():
     print(TELEGRAM_BOT_TOKEN)
@@ -197,6 +201,9 @@ def main():
     dispatcher.add_handler(CallbackQueryHandler(list_backup_files, pattern="^restore_db$"))
     dispatcher.add_handler(CallbackQueryHandler(restore_db_only, pattern="^restore_db_only_"))
     dispatcher.add_handler(CallbackQueryHandler(restore_db_sync_navidrome, pattern="^restore_db_sync_navidrome"))
+    dispatcher.add_handler(CallbackQueryHandler(task_control_menu, pattern="^task_control$"))
+    dispatcher.add_handler(CallbackQueryHandler(toggle_backup, pattern="^toggle_backup$"))
+    dispatcher.add_handler(CallbackQueryHandler(toggle_time_user, pattern="^toggle_time_user$"))
     
     # 启动调度器
     start_scheduler(dispatcher)

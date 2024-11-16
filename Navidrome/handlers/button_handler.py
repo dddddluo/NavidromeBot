@@ -6,7 +6,7 @@ from database import users_collection, routes_collection, whitelist_collection
 from handlers.start_handler import start
 from telegram.ext import ConversationHandler, CallbackContext
 from telegram import Update
-from config import ADMIN_ID, AWAITING_CODE, MESSAGE_HANDLER_TIMEOUT, ALLOWED_GROUP_IDS, TIME_USER_ENABLE
+from config import ADMIN_ID, AWAITING_CODE, MESSAGE_HANDLER_TIMEOUT, config
 from datetime import datetime, timezone
 from util import CHINA_TZ, get_now_utc
 from bson.codec_options import CodecOptions
@@ -184,6 +184,7 @@ async def check_in(update: Update, context: CallbackContext):
     user_data = users_collection.with_options(codec_options=CodecOptions(
         tz_aware=True,
         tzinfo=CHINA_TZ)).find_one({"telegram_id": user_id})
+    TIME_USER_ENABLE = config.get('TIME_USER_ENABLE', True)
     if not TIME_USER_ENABLE:
         await query.answer(text="未开启签到保号，请放心使用！", show_alert=True, cache_time=5)
         return
