@@ -20,7 +20,6 @@ async def handle_message(update, context):
 
     logger.info(f"Received message: {text} from user: {user.username}")  # 调试日志
     if context.user_data.get('awaiting_code'):
-        print("awaiting_code")
         logger.info(f"Awaiting code from user: {user.username}")  # 调试日志
         # 用户正在输入注册码
         code = text.strip()

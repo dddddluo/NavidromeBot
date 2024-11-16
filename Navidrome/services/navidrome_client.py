@@ -110,12 +110,16 @@ class NavidromeService:
                     return ApiResponse(ResponseCode.SERVER_ERROR, "创建用户失败，请稍后重试。")
             else:
                 return ApiResponse(ResponseCode.SERVER_ERROR, "创建用户失败，请稍后重试。")
-
+    # 删除用户
     async def delete_user(self, user_id):
         return await self._make_request('DELETE', f'/api/user/{user_id}')
+    # 获取用户
     async def get_user(self, user_id):
         return await self._make_request('GET', f'/api/user/{user_id}')
-
+    # 获取所有用户
+    async def get_users(self):
+        return await self._make_request('GET', '/api/user')
+    # 重置密码
     async def reset_password(self, user_id, name, username, new_password):
         response = await self.get_user(user_id)
         if response.code != 200:

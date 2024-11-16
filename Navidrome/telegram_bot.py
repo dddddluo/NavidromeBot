@@ -21,7 +21,7 @@ from handlers.time_user_handler import delete_inactive_callback
 from handlers.reset_password_handler import reset_password
 from handlers.open_register_handler import open_register_user_callback, open_register_user_handler, open_register_admin_callback, open_register_admin_num_handler, close_register_admin_callback
 from jobs.set_bot_command import set_bot_command_scheduler
-from jobs.backup_db import backup_db_scheduler, backup_db_callback, list_backup_files, restore_db_callback
+from jobs.backup_db import backup_db_scheduler, backup_db_callback, list_backup_files, restore_db_sync_navidrome, restore_db_only
 from handlers.view_users_handler import view_users, view_users_pagination, view_whitelist, view_whitelist_pagination
 from config import TELEGRAM_BOT_TOKEN, AWAITING_CODE, AWAITING_USERNAME, AWAITING_OPEN_REGISTER_USERNAME, AWAITING_OPEN_REGISTER_SLOTS, MESSAGE_HANDLER_TIMEOUT
 from handlers.broadcast_handler import (
@@ -195,7 +195,8 @@ def main():
     dispatcher.add_handler(CallbackQueryHandler(view_whitelist_pagination, pattern="^whitelist_page_"))
     dispatcher.add_handler(CallbackQueryHandler(close_register_admin_callback, pattern="^close_register_admin$"))
     dispatcher.add_handler(CallbackQueryHandler(list_backup_files, pattern="^restore_db$"))
-    dispatcher.add_handler(CallbackQueryHandler(restore_db_callback, pattern="^restore_mongo_backup_"))
+    dispatcher.add_handler(CallbackQueryHandler(restore_db_only, pattern="^restore_db_only_"))
+    dispatcher.add_handler(CallbackQueryHandler(restore_db_sync_navidrome, pattern="^restore_db_sync_navidrome"))
     
     # 启动调度器
     start_scheduler(dispatcher)
