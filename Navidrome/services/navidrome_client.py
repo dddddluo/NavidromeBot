@@ -9,13 +9,15 @@ logger = logging.getLogger(__name__)
 
 class ResponseCode:
     USERNAME_EXISTS = 5001,
+    USER_NOT_FOUND = 5002,
     TOKEN_EXPIRED = 401
     SERVER_ERROR = 500
-
+    RESET_PASSWORD_USER_NOT_FOUND = 5003
 error_message = {
     ResponseCode.USERNAME_EXISTS: "虎揍换个用户名！用户名重复啦！",
     ResponseCode.TOKEN_EXPIRED: "Navidrome token 已过期，正在获取新的令牌。",
-    ResponseCode.SERVER_ERROR: "服务器内部错误"
+    ResponseCode.SERVER_ERROR: "服务器内部错误",
+    ResponseCode.RESET_PASSWORD_USER_NOT_FOUND: "重置密码失败，用户不存在"
 }
 class ApiResponse:
     def __init__(self, code, message, data=None):
@@ -111,8 +113,16 @@ class NavidromeService:
 
     async def delete_user(self, user_id):
         return await self._make_request('DELETE', f'/api/user/{user_id}')
+    async def get_user(self, user_id):
+        return await self._make_request('GET', f'/api/user/{user_id}')
 
     async def reset_password(self, user_id, name, username, new_password):
+        response = await self.get_user(user_id)
+        if response.code != 200:
+            if response.code == 404:
+                return ApiResponse(ResponseCode.RESET_PASSWORD_USER_NOT_FOUND, error_message[ResponseCode.RESET_PASSWORD_USER_NOT_FOUND])
+            else:
+                return ApiResponse(ResponseCode.SERVER_ERROR, error_message[ResponseCode.SERVER_ERROR])
         payload = {
             "userName": username,
             "name": name,

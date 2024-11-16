@@ -31,4 +31,4 @@ async def reset_password(update: Update, context: CallbackContext):
     if result.code == 200:
         await update.effective_chat.send_message(text=f"虎揍你的新鲜密码为: `{new_password}`", parse_mode="MarkdownV2")
     else:
-        await update.effective_chat.send_message(text="重置密码失败。")
+        await update.effective_chat.send_message(text=result.message)
