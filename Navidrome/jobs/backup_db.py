@@ -169,13 +169,16 @@ async def list_backup_files(update, context):
 
         # 创建键盘按钮
         keyboard = []
+        time_emoji = ["🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚", "🕛"]
+        i = 0
         for file in sorted(backup_files, reverse=True):
             keyboard.append([
-                InlineKeyboardButton(f"恢复 {file}", callback_data=f"restore_db_only_{file}")
+                InlineKeyboardButton(f"{time_emoji[i]}恢复 {file}", callback_data=f"restore_db_only_{file}")
             ])
+            i += 1
 
         # 添加同步和返回按钮
-        keyboard.append([InlineKeyboardButton("同步数据到Navidrome", callback_data="restore_db_sync_navidrome"),
+        keyboard.append([InlineKeyboardButton("📥同步到Navidrome", callback_data="restore_db_sync_navidrome"),
                         InlineKeyboardButton("🔙返回", callback_data='admin_menu')])
         
         reply_markup = InlineKeyboardMarkup(keyboard)
