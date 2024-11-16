@@ -46,6 +46,7 @@ async def backup_db_job(context):
     tar_file = dump_db(collections, db, DB_BACKUP_DIR)
     dump_config_file = dump_config_json(config_path, os.path.join(
         DB_BACKUP_DIR, f'config_{now.strftime("%Y%m%d")}.json'))
+    
     if dump_config_file:
         await context.bot.send_document(chat_id=OWNER, document=dump_config_file)
     await context.bot.send_document(chat_id=OWNER, document=tar_file)
@@ -83,6 +84,9 @@ def dump_db(collections, db, path):
     for coll in collections:
         tar.add(os.path.join(path, f'{coll}.bson'))
     tar.close()
+    # remove temp files
+    for coll in collections:
+        os.remove(os.path.join(path, f'{coll}.bson'))
     return os.path.join(path, f'mongo_backup_{now.strftime("%Y%m%d")}.tar.gz')
 
 
@@ -178,9 +182,10 @@ async def list_backup_files(update, context):
             i += 1
 
         # 添加同步和返回按钮
-        keyboard.append([InlineKeyboardButton("📥同步到Navidrome", callback_data="restore_db_sync_navidrome"),
-                        InlineKeyboardButton("🔙返回", callback_data='admin_menu')])
-        
+        keyboard.append([
+            InlineKeyboardButton("🔙返回", callback_data='admin_menu'),
+            InlineKeyboardButton("📥同步到Navidrome", callback_data="restore_db_sync_navidrome")
+        ])
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         # 更新消息
@@ -190,7 +195,6 @@ async def list_backup_files(update, context):
         )
 
     except Exception as e:
-        print(e)
         await update.callback_query.answer(f"处理备份文件列表时出错", show_alert=True)
 
 
@@ -218,7 +222,6 @@ async def restore_db_only(update, context):
                 for name in dirs:
                     os.rmdir(os.path.join(root, name))
             os.rmdir(temp_dir)
-
         os.makedirs(temp_dir)
 
         # 解压备份文件
