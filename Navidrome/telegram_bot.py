@@ -14,7 +14,7 @@ from handlers.list_code_handler import list_code, code_pagination
 from handlers.message_handler import handle_message, cancel, timeout
 from handlers.button_handler import back_to_start, close, user_info, server_info, use_code, check_in, admin_menu_callback, back_to_admin
 from handlers.del_user_handler import del_user, handle_left_chat_member
-from handlers.time_user_handler import check_in_handler, start_scheduler
+from handlers.time_user_handler import check_in_handler, delete_inactive_user_scheduler
 from handlers.add_whitelist_handler import add_whitelist
 from handlers.del_whitelist_handler import del_whitelist
 from handlers.time_user_handler import delete_inactive_callback
@@ -206,7 +206,7 @@ def main():
     dispatcher.add_handler(CallbackQueryHandler(toggle_time_user, pattern="^toggle_time_user$"))
     
     # 启动调度器
-    start_scheduler(dispatcher)
+    delete_inactive_user_scheduler(dispatcher)
     set_bot_command_scheduler(dispatcher)
     backup_db_scheduler(dispatcher)
     

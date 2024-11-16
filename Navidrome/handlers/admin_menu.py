@@ -1,7 +1,6 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from handlers.permissions import admin_only
 
-
 @admin_only
 async def admin_menu(update, context):
     keyboard = [
@@ -24,6 +23,9 @@ async def admin_menu(update, context):
         [
             InlineKeyboardButton("📢消息广播", callback_data='broadcast_message'),
             InlineKeyboardButton("🗑️删除广播", callback_data='delete_broadcast'),
+        ],
+        [
+            InlineKeyboardButton("⚙️任务控制", callback_data="task_control")
         ],
         [
             InlineKeyboardButton("🔙返回", callback_data='back_to_start'),

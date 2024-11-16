@@ -113,41 +113,43 @@ async def handle_check_in(update: Update, context: CallbackContext):
 
 async def delete_inactive_users(context: CallbackContext):
     TIME_USER_ENABLE = config.get('TIME_USER_ENABLE', True)
-    if TIME_USER_ENABLE:
-        logger.info("Running scheduled task to delete inactive users.")
+    if not TIME_USER_ENABLE:
+        logger.info("签到保号已关闭，跳过删除不活跃用户任务")
+        return
+    logger.info("Running scheduled task to delete inactive users.")
 
-        threshold_date = get_now_utc() - TIME_DELTA
-        logger.info(f"Threshold date for deletion: {threshold_date}")
-        inactive_users = users_collection.find({
-            "$or": [
+    threshold_date = get_now_utc() - TIME_DELTA
+    logger.info(f"Threshold date for deletion: {threshold_date}")
+    inactive_users = users_collection.find({
+        "$or": [
                 {"last_check_in": {"$lt": threshold_date}},
                 {"last_check_in": None}
             ],
             "user_id": {"$ne": None},
             "whitelist": {"$ne": True}
         })
-        for user in inactive_users:
-            tg_id = user.get("telegram_id")
-            # 检查用户ID是否为管理员或在白名单中
-            if tg_id in ADMIN_ID or whitelist_collection.find_one({"telegram_id": tg_id}):
-                logger.info(f"跳过管理员或白名单用户的删除。")
-                continue
-            # 如果有Navidrome账号，则删除Navidrome账号
-            if user.get('user_id') is not None:
-                code, mention, result = await delete_user_by_telegram_id(tg_id, context)
-                # 发送通知消息到群里
-                if code == 200:
-                    notification_message = f"检测到用户 {mention} {TIME_USER}内未签到，账号已自动删除。"
-                    logger.info(f"删除Navidrome用户 {mention} 成功。")
-                else:
-                    notification_message = f"检测到用户 {mention} {TIME_USER}内未签到，但删除账号时出错。"
-                    logger.info(
-                        f"删除Navidrome用户 {mention} 失败，{result}")
-                for chat_id in ALLOWED_GROUP_IDS:
-                    await context.bot.send_message(chat_id=chat_id, text=notification_message, parse_mode='HTML')
-            # 删除用户逻辑
-            users_collection.delete_one({"telegram_id": tg_id})
-            logger.info(f"用户 {mention} 删除成功。")
+    for user in inactive_users:
+        tg_id = user.get("telegram_id")
+        # 检查用户ID是否为管理员或在白名单中
+        if tg_id in ADMIN_ID or whitelist_collection.find_one({"telegram_id": tg_id}):
+            logger.info(f"跳过管理员或白名单用户的删除。")
+            continue
+        # 如果有Navidrome账号，则删除Navidrome账号
+        if user.get('user_id') is not None:
+            code, mention, result = await delete_user_by_telegram_id(tg_id, context)
+            # 发送通知消息到群里
+            if code == 200:
+                notification_message = f"检测到用户 {mention} {TIME_USER}内未签到，账号已自动删除。"
+                logger.info(f"删除Navidrome用户 {mention} 成功。")
+            else:
+                notification_message = f"检测到用户 {mention} {TIME_USER}内未签到，但删除账号时出错。"
+                logger.info(
+                    f"删除Navidrome用户 {mention} 失败，{result}")
+            for chat_id in ALLOWED_GROUP_IDS:
+                await context.bot.send_message(chat_id=chat_id, text=notification_message, parse_mode='HTML')
+        # 删除用户逻辑
+        users_collection.delete_one({"telegram_id": tg_id})
+        logger.info(f"用户 {mention} 删除成功。")
 
 
 @admin_only
@@ -165,7 +167,7 @@ async def delete_inactive_callback(update, context):
 scheduler = AsyncIOScheduler()
 
 
-def start_scheduler(dispatcher):
+def delete_inactive_user_scheduler(dispatcher):
     TIME_USER_ENABLE = config.get('TIME_USER_ENABLE', True)
     if TIME_USER_ENABLE:
         # 添加定时任务 每天0点0分0秒 执行一次

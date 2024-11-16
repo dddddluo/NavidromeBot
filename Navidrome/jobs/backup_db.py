@@ -14,9 +14,13 @@ import glob
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from services.navidrome_client import navidrome_service, ApiResponse
 import logging
+from config import config
 logger = logging.getLogger(__name__)
 
 async def backup_db_job(context):
+    if not config.get('BACKUP_DB_ENABLE', True):
+        logger.info("数据库备份已关闭，跳过备份任务")
+        return
     await context.bot.send_message(chat_id=OWNER, text="备份数据库ing")
     collections = db.list_collection_names()
     if not os.path.exists(DB_BACKUP_DIR):
