@@ -38,7 +38,6 @@ async def toggle_backup(update: Update, context: CallbackContext):
     await query.answer()
     BACKUP_DB_ENABLE = config.get('BACKUP_DB_ENABLE', True)
     BACKUP_DB_ENABLE =  not BACKUP_DB_ENABLE
-    print(BACKUP_DB_ENABLE)
     # 更新配置文件
     update_config('BACKUP_DB_ENABLE', BACKUP_DB_ENABLE)
 

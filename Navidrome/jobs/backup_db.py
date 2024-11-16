@@ -17,8 +17,8 @@ import logging
 from config import config
 logger = logging.getLogger(__name__)
 
-async def backup_db_job(context):
-    if not config.get('BACKUP_DB_ENABLE', True):
+async def backup_db_job(context, scheduler=None):
+    if scheduler and not config.get('BACKUP_DB_ENABLE', True):
         logger.info("数据库备份已关闭，跳过备份任务")
         return
     await context.bot.send_message(chat_id=OWNER, text="备份数据库ing")
@@ -147,7 +147,7 @@ scheduler = AsyncIOScheduler()
 
 def backup_db_scheduler(dispatcher):
     scheduler.add_job(backup_db_job, 'cron', hour=4,
-                      minute=0, second=0, args=[dispatcher])
+                      minute=0, second=0, args=[dispatcher, scheduler])
     scheduler.start()
 
 
