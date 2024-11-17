@@ -1,9 +1,8 @@
 import json
 import os
-import logging
+from log import logger
 # 从 config.json 读取配置
 config_path = os.path.join(os.path.dirname(__file__), 'config.json')
-logger = logging.getLogger(__name__)
 
 global config
 with open(config_path, 'r') as config_file:
@@ -15,6 +14,7 @@ TELEGRAM_BOT_NAME = config.get('TELEGRAM_BOT_NAME')  # Telegram bot 名称
 OWNER = config.get('OWNER')  # 所有者
 ADMIN_ID = config.get('ADMIN_ID')  # 管理员 Telegram ID
 ALLOWED_GROUP_IDS = config.get('ALLOWED_GROUP_IDS') # Telegram群ID
+LOG_GROUP_ID = config.get('LOG_GROUP_ID')  # 日志群ID
 GROUP_INVITE_LINK = config.get('GROUP_INVITE_LINK')
 # Navidrome 令牌
 bearer_TOKEN = None  # 全局变量，用于存储 Navidrome 令牌

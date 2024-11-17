@@ -1,13 +1,11 @@
 #增加白名单
-import logging
 from telegram import Update
 from telegram.ext import CallbackContext
 from database import users_collection, whitelist_collection
 from handlers.permissions import admin_only
 from util import delete_messages
+from log import logger
 
-# 创建日志记录器
-logger = logging.getLogger(__name__)
 
 # 添加到白名单的处理函数
 @admin_only

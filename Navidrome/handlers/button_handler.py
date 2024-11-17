@@ -1,5 +1,4 @@
 # 按钮
-import logging
 import html
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from database import users_collection, routes_collection, whitelist_collection
@@ -13,8 +12,8 @@ from bson.codec_options import CodecOptions
 import asyncio
 from handlers.admin_menu import admin_menu
 from handlers.permissions import admin_only
-# 创建日志记录器
-logger = logging.getLogger(__name__)
+from log import logger
+
 
 # 处理按钮点击事件的函数
 

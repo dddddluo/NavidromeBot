@@ -3,10 +3,9 @@ from telegram.ext import ConversationHandler, ContextTypes
 from config import ALLOWED_GROUP_IDS
 from database import db
 from bson import ObjectId
-import logging
 from datetime import datetime
+from log import logger
 
-logger = logging.getLogger(__name__)
 
 # 定义会话状态
 AWAITING_BROADCAST_MESSAGE = 1

@@ -1,12 +1,10 @@
-import logging
 from telegram.ext import ConversationHandler
 from database import exchange_codes_collection, users_collection
 from util import get_now_utc
 from services.navidrome_client import navidrome_service, ResponseCode
 from handlers.start_handler import start
 from config import AWAITING_USERNAME, MESSAGE_HANDLER_TIMEOUT, AWAITING_CODE
-# 创建日志记录器
-logger = logging.getLogger(__name__)
+from log import logger
 
 # 处理用户发送的消息
 

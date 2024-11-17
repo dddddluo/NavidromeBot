@@ -1,12 +1,11 @@
 # 删除线路
 
-import logging
 from telegram import Update
 from telegram.ext import CallbackContext
 from database import routes_collection
 from handlers.permissions import admin_only, private_only
+from log import logger
 
-logger = logging.getLogger(__name__)
 
 @admin_only
 @private_only

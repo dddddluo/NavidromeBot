@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from util import get_now_utc
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -8,9 +7,7 @@ from config import AWAITING_OPEN_REGISTER_USERNAME, AWAITING_OPEN_REGISTER_SLOTS
 from database import users_collection
 from services.navidrome_client import navidrome_service, ResponseCode
 from handlers.permissions import admin_only
-# 注册队列
-
-logger = logging.getLogger(__name__)
+from log import logger
 
 registration_queue = asyncio.Queue()
 

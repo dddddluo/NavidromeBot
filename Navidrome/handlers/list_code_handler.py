@@ -1,12 +1,8 @@
-import logging
 import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
 from database import exchange_codes_collection
 from handlers.permissions import admin_only, private_only
-
-# 创建日志记录器
-logger = logging.getLogger(__name__)
 
 # 转义 MarkdownV2 特殊字符的函数
 

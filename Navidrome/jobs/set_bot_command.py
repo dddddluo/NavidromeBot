@@ -5,9 +5,7 @@ from telegram import BotCommand
 from telegram import BotCommand, BotCommandScopeAllGroupChats, BotCommandScopeAllPrivateChats, BotCommandScopeChat, BotCommandScopeChatMember
 import asyncio
 from config import ADMIN_ID, ALLOWED_GROUP_IDS
-import logging
-
-logger = logging.getLogger(__name__)
+from log import logger
 
 
 async def set_bot_command(context):

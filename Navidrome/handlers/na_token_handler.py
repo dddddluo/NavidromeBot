@@ -1,12 +1,10 @@
-import logging
 from telegram import Update
 from telegram.ext import CallbackContext
 import config
 from services.navidrome_client import navidrome_service
 from handlers.permissions import admin_only, private_only
+from log import logger
 
-# 创建日志记录器
-logger = logging.getLogger(__name__)
 
 # 检查 Navidrome 令牌的函数
 

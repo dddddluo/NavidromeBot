@@ -1,13 +1,11 @@
-import logging
 from telegram.ext import CallbackContext
 from telegram import Update
+from log import logger
 from database import users_collection, whitelist_collection
 from config import ALLOWED_GROUP_IDS
 from handlers.permissions import admin_only
 from util import delete_messages
 from services.navidrome_client import navidrome_service
-# 创建日志记录器
-logger = logging.getLogger(__name__)
 
 # 删除用户的函数
 

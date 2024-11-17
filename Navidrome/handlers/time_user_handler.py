@@ -1,4 +1,3 @@
-import logging
 import datetime
 from datetime import timezone
 from telegram import Update
@@ -10,8 +9,7 @@ from util import delete_messages, get_now_utc, CHINA_TZ
 from handlers.permissions import admin_only
 from handlers.del_user_handler import delete_user_by_telegram_id
 from bson.codec_options import CodecOptions
-# 创建日志记录器
-logger = logging.getLogger(__name__)
+from log import logger
 
 
 def parse_time(time_str):

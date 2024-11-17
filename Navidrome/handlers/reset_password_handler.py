@@ -1,12 +1,8 @@
-import logging
 from telegram import Update
 from telegram.ext import CallbackContext
 from database import users_collection
 from services.navidrome_client import navidrome_service
 from handlers.permissions import private_only
-
-# 创建日志记录器
-logger = logging.getLogger(__name__)
 
 # 转义 MarkdownV2 特殊字符的函数
 

@@ -1,14 +1,11 @@
 # 初始化*按钮
-import logging
-import os
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 from config import START_PIC, ADMIN_ID, config
 from database import exchange_codes_collection, users_collection
 from config import AWAITING_USERNAME
 import asyncio
-# 创建日志记录器
-logger = logging.getLogger(__name__)
+from log import logger
 
 # 处理 /start 命令的函数
 

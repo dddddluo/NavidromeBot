@@ -1,9 +1,8 @@
 import pytz
 from telegram.ext import CallbackContext
-import logging
 import datetime
+from log import logger
 
-logger = logging.getLogger(__name__)
 
 async def delete_messages(context: CallbackContext):
     job = context.job

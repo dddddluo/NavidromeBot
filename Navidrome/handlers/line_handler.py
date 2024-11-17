@@ -1,11 +1,8 @@
 # 线路信息
-
-import logging
 from database import routes_collection
 from handlers.permissions import private_only
+from log import logger
 
-# 创建日志记录器
-logger = logging.getLogger(__name__)
 
 # 处理 /line 命令的函数
 @private_only

@@ -1,4 +1,3 @@
-import logging
 import random
 import string
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
@@ -8,9 +7,8 @@ from handlers.permissions import admin_only
 from database import users_collection
 from util import delete_messages
 from config import TELEGRAM_BOT_NAME
+from log import logger
 
-# 创建日志记录器
-logger = logging.getLogger(__name__)
 
 # 生成兑换码的函数
 

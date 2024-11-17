@@ -1,4 +1,3 @@
-import logging
 from functools import wraps
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -6,8 +5,8 @@ from config import ALLOWED_GROUP_IDS, ADMIN_ID, GROUP_INVITE_LINK
 from util import delete_messages
 from telegram import ChatMember
 from datetime import timedelta
+from log import logger
 
-logger = logging.getLogger(__name__)
 
 async def is_user_in_allowed_group(update: Update, context: CallbackContext) -> bool:
     user_id = update.effective_user.id

@@ -1,6 +1,4 @@
-import logging
-import os
-from logging.handlers import TimedRotatingFileHandler
+import asyncio
 from telegram import Update
 from telegram.ext import filters, ApplicationBuilder, MessageHandler, CommandHandler, CallbackQueryHandler, AIORateLimiter, ConversationHandler, TypeHandler
 from handlers.permissions import restricted
@@ -31,29 +29,7 @@ from handlers.broadcast_handler import (
     AWAITING_BROADCAST_MESSAGE, AWAITING_TARGET_SELECTION, AWAITING_PIN_CONFIRMATION
 )
 from handlers.task_control_handler import task_control_menu, toggle_backup, toggle_time_user
-
-# 设置日志
-log_dir = 'logs'
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
-
-log_file = os.path.join(log_dir, 'telegram_bot.log')
-
-file_handler = TimedRotatingFileHandler(
-    log_file,
-    when="midnight",
-    interval=1,
-    backupCount=7,
-    encoding='utf-8'
-)
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO,
-    handlers=[file_handler]
-)
-logger = logging.getLogger(__name__)
-
+from error_handler import error_handler
 
 # 装饰现有处理函数
 start = restricted(start)
@@ -209,9 +185,11 @@ def main():
     delete_inactive_user_scheduler(dispatcher)
     set_bot_command_scheduler(dispatcher)
     backup_db_scheduler(dispatcher)
-    
+    # the error handler
+    dispatcher.add_error_handler(error_handler)
     # 启动机器人
-    dispatcher.run_polling(allowed_updates=Update.ALL_TYPES)
+    # 使用 asyncio 来运行程序
+    asyncio.run(dispatcher.run_polling(allowed_updates=[Update.MESSAGE, Update.CHAT_MEMBER, Update.CALLBACK_QUERY]))
 
 
 if __name__ == '__main__':

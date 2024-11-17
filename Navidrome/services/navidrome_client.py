@@ -1,11 +1,8 @@
-import json
 import aiohttp
-import logging
 import random
 import string
 from config import API_BASE_URL, NA_ADMIN_USERNAME, NA_ADMIN_PASSWORD, LOGIN_URL
-
-logger = logging.getLogger(__name__)
+from log import logger
 
 class ResponseCode:
     USERNAME_EXISTS = 5001,

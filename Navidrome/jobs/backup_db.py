@@ -8,14 +8,12 @@ from util import get_now_utc
 from handlers.permissions import admin_only
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import json
-from config import config_path, DB_BACKUP_RETENTION_DAYS
+from config import config_path, DB_BACKUP_RETENTION_DAYS, config
+from log import logger
 import asyncio
 import glob
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from services.navidrome_client import navidrome_service, ApiResponse
-import logging
-from config import config
-logger = logging.getLogger(__name__)
 
 async def backup_db_job(context, scheduler=None):
     if scheduler and not config.get('BACKUP_DB_ENABLE', True):

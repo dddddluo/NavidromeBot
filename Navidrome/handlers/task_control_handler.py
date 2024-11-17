@@ -1,10 +1,7 @@
-import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 from config import config, update_config
 from handlers.permissions import admin_only
-
-logger = logging.getLogger(__name__)
 
 @admin_only
 async def task_control_menu(update: Update, context: CallbackContext):
