@@ -10,7 +10,7 @@ from handlers.new_line_handler import new_line
 from handlers.del_line_handler import del_line
 from handlers.na_token_handler import na_token
 from handlers.help_handler import help
-from handlers.list_code_handler import list_code, code_pagination
+from handlers.list_code_handler import list_code, code_pagination, clear_all_codes
 from handlers.message_handler import handle_message, cancel, timeout
 from handlers.button_handler import back_to_start, close, user_info, server_info, use_code, check_in, admin_menu_callback, back_to_admin
 from handlers.del_user_handler import del_user, handle_left_chat_member
@@ -204,6 +204,7 @@ def main():
     dispatcher.add_handler(CallbackQueryHandler(task_control_menu, pattern="^task_control$"))
     dispatcher.add_handler(CallbackQueryHandler(toggle_backup, pattern="^toggle_backup$"))
     dispatcher.add_handler(CallbackQueryHandler(toggle_time_user, pattern="^toggle_time_user$"))
+    dispatcher.add_handler(CallbackQueryHandler(clear_all_codes, pattern="^clear_all_codes$"))
     
     # 启动调度器
     delete_inactive_user_scheduler(dispatcher)
