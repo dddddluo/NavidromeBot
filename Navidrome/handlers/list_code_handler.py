@@ -39,6 +39,8 @@ async def list_code(update: Update, context: CallbackContext):
         InlineKeyboardButton("🔙返回", callback_data='back_to_admin'),
         InlineKeyboardButton("❌ 关闭", callback_data='close')
     ]]
+    if len(all_codes) > 0:
+        keyboard.insert(1, [InlineKeyboardButton("🗑️ 清除所有注册码", callback_data='clear_all_codes')])
     if len(all_codes) > items_per_page:
         all_codes.pop()
     unused_codes = []
@@ -53,7 +55,7 @@ async def list_code(update: Update, context: CallbackContext):
     allcount = exchange_codes_collection.count_documents(
         {"used": {"$eq": False}})
     # 构建回复消息
-    message = f"所有未使用的兑换码总数：{allcount}\n\n"
+    message = f"所有未使用的注册码总数：{allcount}\n\n"
     if unused_codes:
         message += "\n".join(unused_codes) + "\n"
 
@@ -71,3 +73,37 @@ async def code_pagination(update: Update, context: CallbackContext):
     # 重新调用 list_code 函数，传入新的页码
     context.user_data['code_page'] = page
     await list_code(update, context)
+
+
+@admin_only
+@private_only
+async def clear_all_codes(update: Update, context: CallbackContext):
+    query = update.callback_query
+    
+    try:
+        # 删除所有未使用的注册码
+        result = exchange_codes_collection.delete_many({"used": {"$eq": False}})
+        deleted_count = result.deleted_count
+        
+        # 构建回复消息
+        message = f"已成功删除 {deleted_count} 个未使用的注册码\\!"
+        
+        # 我也会按钮了🔘乌啦啦
+        keyboard = [[
+            InlineKeyboardButton("🔙返回", callback_data='back_to_admin'),
+            InlineKeyboardButton("❌ 关闭", callback_data='close')
+        ]]
+        
+       
+        await query.edit_message_caption(
+            caption=message,
+            parse_mode='MarkdownV2',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+    except Exception as e:
+        logger.error(f"清除注册码时发生错误: {str(e)}")
+        await query.edit_message_caption(
+            caption="清除注册码时发生错误\\!",
+            parse_mode='MarkdownV2'
+        )
