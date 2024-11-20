@@ -288,26 +288,47 @@ async def restore_db_sync_navidrome(update, context):
             reply_markup=InlineKeyboardMarkup(back_to_admin_keyboard)
         )
         return
-    existing_usernames = {user['userName'] for user in existing_users.data}
-
+    
+    # 创建现有用户名到用户ID的映射
+    existing_user_map = {user['userName']: user['id'] for user in existing_users.data}
     restored_users = users_collection.find({})
 
     success_count = 0
     fail_count = 0
     for user in restored_users:
-        if user['username'] not in existing_usernames:
-            try:
-                if user.get('user_id') and user.get('username'):
-                    password = user.get('password', navidrome_service.generate_random_password())
-                    await navidrome_service.create_na_user(
+        try:
+            if user.get('user_id') and user.get('username'):
+                password = user.get('password', navidrome_service.generate_random_password())
+                
+                if user['username'] in existing_user_map:
+                    # 如果用户已存在，更新MD中user_id以匹配Nv的id
+                    navidrome_id = existing_user_map[user['username']]
+                    users_collection.update_one(
+                        {'username': user['username']},
+                        {'$set': {'user_id': str(navidrome_id)}}  # 确保user_id是字符串类型
+                    )
+                    success_count += 1
+                else:
+                    # 如果用户不存在，创建新用户
+                    create_response = await navidrome_service.create_na_user(
                         username=user['username'],
                         name=user.get('name', user['username']),
                         password=password,
                     )
-                    success_count += 1
-            except Exception as e:
-                fail_count += 1
-                logger.error(f"创建用户 {user['username']} 失败: {str(e)}")
+                    if create_response.code == 200:
+                        # 更新MD中user_id为Nv用户id
+                        navidrome_id = create_response.data['id']
+                        users_collection.update_one(
+                            {'username': user['username']},
+                            {'$set': {'user_id': str(navidrome_id)}}  
+                        )
+                        success_count += 1
+                    else:
+                        fail_count += 1
+                        logger.error(f"创建用户 {user['username']} 失败: {create_response.message}")
+        except Exception as e:
+            fail_count += 1
+            logger.error(f"处理用户 {user['username']} 失败: {str(e)}")
 
     # 返回结果消息
     result_message = "✅ 同步到Navidrome已完成！"
