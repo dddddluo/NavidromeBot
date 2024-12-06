@@ -194,4 +194,10 @@ def main():
 
 
 if __name__ == '__main__':
+    try:
+        import uvloop
+        uvloop.install()
+        print("uvloop 已启用")
+    except ImportError:
+        print("未找到 uvloop,使用默认事件循环")
     main()

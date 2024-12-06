@@ -5,3 +5,4 @@ pymongo==4.9.1
 schedule==1.2.2
 pytz==2024.2
 aiohttp==3.10.10
+uvloop==0.21.0
