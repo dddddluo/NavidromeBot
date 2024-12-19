@@ -8,6 +8,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: bot
       MONGO_INITDB_ROOT_PASSWORD: botpwd
+    volumes:
+      - ./db:/data/db
     ports:
       - 27017:27017
   navidrome_bot:
