@@ -18,6 +18,13 @@ async def is_user_in_allowed_group(update: Update, context: CallbackContext) -> 
         except Exception as e:
             logger.error(f"Error checking user in group {group_id}: {e}")
     return False
+async def is_user_in_allowed_group_id(user_id: int, group_id: int, context: CallbackContext) -> bool:
+    try:
+        chat_member = await context.bot.get_chat_member(chat_id=group_id, user_id=user_id)
+        return chat_member.status in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR, ChatMember.OWNER, ChatMember.RESTRICTED]
+    except Exception as e:
+        logger.error(f"Error checking user in group {group_id}: {e}")
+        return False
 def admin_only(func):
     @wraps(func)
     async def wrapper(update: Update, context: CallbackContext):

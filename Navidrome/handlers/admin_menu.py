@@ -9,7 +9,8 @@ async def admin_menu(update, context):
             InlineKeyboardButton("🎖查看白名单", callback_data='view_whitelist'),
         ],
         [
-            InlineKeyboardButton("🔄删除不活跃用户", callback_data='delete_inactive'),
+            InlineKeyboardButton("❗️删除未签到用户", callback_data='delete_inactive'),
+            InlineKeyboardButton("⛔️删除离群用户", callback_data='delete_not_in_group'),
             InlineKeyboardButton("🔖查看注册码", callback_data='list_code'),
         ],
         [

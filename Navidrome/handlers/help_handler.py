@@ -13,7 +13,6 @@ async def help(update, context):
             '/del_line 删除线路(命令+名字) \n'
             '/add_whitelist 回复消息或tgid添加白名单(命令+tgid) \n'
             '/del_whitelist 回复消息或tgid删除白名单(命令+tgid) \n'
-            '/delete_inactive 删除未签到用户 \n'
             '/na_token 手动刷新Navirome Token \n'
         )
         await update.message.reply_text(message)

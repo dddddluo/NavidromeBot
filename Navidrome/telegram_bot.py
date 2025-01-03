@@ -11,7 +11,7 @@ from handlers.help_handler import help
 from handlers.list_code_handler import list_code, code_pagination, clear_all_codes
 from handlers.message_handler import handle_message, cancel, timeout
 from handlers.button_handler import back_to_start, close, user_info, server_info, use_code, check_in, admin_menu_callback, back_to_admin
-from handlers.del_user_handler import del_user, handle_left_chat_member
+from handlers.del_user_handler import del_user, handle_left_chat_member, delete_not_in_group
 from handlers.time_user_handler import check_in_handler, delete_inactive_user_scheduler
 from handlers.add_whitelist_handler import add_whitelist
 from handlers.del_whitelist_handler import del_whitelist
@@ -52,6 +52,7 @@ del_user = restricted(del_user)
 add_whitelist = restricted(add_whitelist)
 del_whitelist = restricted(del_whitelist)
 delete_inactive_callback = restricted(delete_inactive_callback)
+delete_not_in_group = restricted(delete_not_in_group)
 admin_menu_callback = restricted(admin_menu_callback)
 view_users = restricted(view_users)
 view_users_pagination = restricted(view_users_pagination)
@@ -181,6 +182,7 @@ def main():
     dispatcher.add_handler(CallbackQueryHandler(toggle_backup, pattern="^toggle_backup$"))
     dispatcher.add_handler(CallbackQueryHandler(toggle_time_user, pattern="^toggle_time_user$"))
     dispatcher.add_handler(CallbackQueryHandler(clear_all_codes, pattern="^clear_all_codes$"))
+    dispatcher.add_handler(CallbackQueryHandler(delete_not_in_group, pattern="^delete_not_in_group$"))
     
     # 启动调度器
     delete_inactive_user_scheduler(dispatcher)

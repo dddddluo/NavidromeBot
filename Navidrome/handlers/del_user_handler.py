@@ -3,7 +3,7 @@ from telegram import Update
 from log import logger
 from database import users_collection, whitelist_collection
 from config import ALLOWED_GROUP_IDS
-from handlers.permissions import admin_only
+from handlers.permissions import admin_only, is_user_in_allowed_group_id
 from util import delete_messages
 from services.navidrome_client import navidrome_service
 
@@ -101,3 +101,20 @@ async def handle_left_chat_member(update: Update, context: CallbackContext):
             await context.bot.send_message(chat_id=chat_id, text=notification_message, parse_mode='HTML')
     users_collection.delete_one({"telegram_id": telegram_id})
     whitelist_collection.delete_one({"telegram_id": telegram_id})
+@admin_only
+async def delete_not_in_group(update: Update, context: CallbackContext):
+    await update.callback_query.answer(cache_time=5)
+    await update.callback_query.message.reply_text("正在删除不在群组用户...")
+    users = users_collection.find({"telegram_id": {"$ne": None}})
+    for user in users:
+        if not await is_user_in_allowed_group_id(user["telegram_id"], ALLOWED_GROUP_IDS[0], context):
+            text = f"{user['telegram_id']} 不在群组，删掉用户\n"
+            if user.get("user_id") is not None:
+                await navidrome_service.delete_user(user["user_id"])
+                text += f"{user['telegram_id']} Navidrome账号已删除\n"
+            else:
+                text += f"{user['telegram_id']} Navidrome账号不存在\n"
+            users_collection.delete_one({"telegram_id": user["telegram_id"]})
+            whitelist_collection.delete_one({"telegram_id": user["telegram_id"]})
+            await update.callback_query.message.reply_text(text)
+    await update.callback_query.message.reply_text("执行完成！")

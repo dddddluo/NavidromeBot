@@ -73,6 +73,5 @@
 /del_line - 删除线路
 /add_whitelist - 回复消息或tgid添加白名单
 /del_whitelist - 回复消息或tgid删除白名单
-/delete_inactive - 删除非活跃用户
 /na_token - 手动刷新Navirome Token
 ```

@@ -14,9 +14,9 @@ services:
     build: .
     container_name: navidrome_bot
     volumes:
-      - ./config.json:/app/Navidrome/config.json
-      - ./db_backup:/app/Navidrome/db_backup
-      - ./logo.jpg:/app/Navidrome/logo.jpg
+      - ./Navidrome/config.json:/app/Navidrome/config.json
+      - ./Navidrome/db_backup:/app/Navidrome/db_backup
+      - ./Navidrome/logo.jpg:/app/Navidrome/logo.jpg
     restart: always
     depends_on:
       - mongo 
