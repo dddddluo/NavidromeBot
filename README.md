@@ -75,3 +75,5 @@
 /del_whitelist - 回复消息或tgid删除白名单
 /na_token - 手动刷新Navirome Token
 ```
+
+[!["Buy Me A Coffee"](https://github.com/user-attachments/assets/3a24f81e-ebc1-4244-9a01-26aecb466214)](https://ko-fi.com/dddddluo)
