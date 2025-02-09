@@ -4,10 +4,11 @@ import re
 from handlers.permissions import admin_only
 from database import users_collection, exchange_codes_collection
 import random
-from util import delete_messages, new_exchange_code, get_user_from_message, get_user_from_id
+from util import delete_messages, new_exchange_code, get_user_from_id, CHINA_TZ
 from datetime import datetime
 from services.navidrome_client import navidrome_service
-from config import TELEGRAM_BOT_NAME, ALLOWED_GROUP_IDS
+from config import TELEGRAM_BOT_NAME
+from bson.codec_options import CodecOptions
 hat = ['🎩', '🧢', '👒', '🎓', '⛑', '🪖', '👑']
 head = ['🤖', '😺', '🤡', '👽', '👾', '😈', '👹', '💀', '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼',
         '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐣', '🐺', '🐴', '🐛', '🦄', '🎃']
@@ -24,10 +25,10 @@ class MMUserHandler:
     @staticmethod
     @admin_only
     async def show_user_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.delete()
         """显示用户信息的处理函数"""
         if not update.message.reply_to_message and not context.args:
-            message = await update.message.reply_text("🫡 尊敬的虎揍管理员，请回复用户消息或提供用户的 TGID")
-            await update.message.delete()
+            message = await context.bot.send_message(chat_id=update.message.chat.id, text="🫡 尊敬的虎揍管理员，请回复用户消息或提供用户的 TGID")
             context.job_queue.run_once(delete_messages, 5, data={
                 'chat_id': update.message.chat.id,
                 'bot_message_id': message.message_id
@@ -39,17 +40,17 @@ class MMUserHandler:
         else:
             # 验证输入的TGID是否为数字
             if not re.match(r'^\d+$', context.args[0]):
-                await update.message.delete()
-                message = await update.message.reply_text("🫡 尊敬的虎揍管理员，请回复用户消息或提供用户 TGID")
+                message = await context.bot.send_message(chat_id=update.message.chat.id, text="🫡 尊敬的虎揍管理员，请回复用户消息或提供用户 TGID")
                 context.job_queue.run_once(delete_messages, 5, data={
                     'chat_id': update.message.chat.id,
                     'bot_message_id': message.message_id
                 })
                 return
             target_user_id = int(context.args[0])
-            await update.message.delete()
         # 获取用户信息
-        user_info = users_collection.find_one({"telegram_id": target_user_id})
+        user_info = users_collection.with_options(codec_options=CodecOptions(
+            tz_aware=True,
+            tzinfo=CHINA_TZ)).find_one({"telegram_id": target_user_id})
 
         # 准备按钮
         buttons = []
@@ -68,17 +69,15 @@ class MMUserHandler:
                 ]
             ]
             is_whitelist = user_info.get('whitelist', False)
-            last_sign_in_time = user_info.get('last_sign_in_time', '无')
-            if isinstance(last_sign_in_time, datetime):
-                last_sign_in_time = last_sign_in_time.strftime(
-                    '%Y-%m-%d %H:%M:%S')
-            # 格式化用户信息
+            last_check_in = user_info.get("last_check_in", "未知")
+            if isinstance(last_check_in, datetime):
+                last_check_in = last_check_in.strftime('%Y-%m-%d %H:%M:%S')
             msg = (
                 f"{hat[random.randint(0, len(hat) - 1)]} 用户信息:\n"
                 f"{head[random.randint(0, len(head) - 1)]} TGID: {user_info['telegram_id']}\n"
                 f"{shirt[random.randint(0, len(shirt) - 1)]} 用户名: {user_info.get('username', '无')}\n"
                 f"{shoes[random.randint(0, len(shoes) - 1)]} 等级: {'🧸 普通用户' if not is_whitelist else '🏆 白名单用户'}\n"
-                f"{bag[random.randint(0, len(bag) - 1)]} 签到时间: {last_sign_in_time}"
+                f"{bag[random.randint(0, len(bag) - 1)]} 签到时间: {last_check_in}"
             )
         else:
             # 用户不存在，添加赠送注册资格按钮
@@ -91,7 +90,7 @@ class MMUserHandler:
             ]]
             msg = f"{head[random.randint(0, len(head) - 1)]} 此用户 (TGID: {target_user_id}) 没有 Navidrome 账户"
         reply_markup = InlineKeyboardMarkup(buttons)
-        await update.message.reply_text(msg, reply_markup=reply_markup)
+        await context.bot.send_message(chat_id=update.message.chat.id, text=msg, reply_markup=reply_markup)
 
     @staticmethod
     @admin_only
