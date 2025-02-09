@@ -57,23 +57,24 @@ async def handle_check_in(update: Update, context: CallbackContext):
         return
     now = get_now_utc()
     if not user_data:
-        # 如果用户不存在于数据库中，插入用户数据
-        users_collection.insert_one({
-            "telegram_id": user_id,
-            "username": update.message.from_user.username,
-            "last_check_in": now,
-            "created_at": now
-        })
-        reply_message = await update.message.reply_text("签到成功！")
+        reply_message = await update.message.reply_text("虎揍！你有号吗你就签到？")
         # 等待五秒后删除用户消息和bot的回复
         context.job_queue.run_once(delete_messages, 5, data={
             'chat_id': chat_id,
             'user_message_id': update.message.message_id,
             'bot_message_id': reply_message.message_id
         })
-        logger.info(
-            f"新用户 {update.message.from_user.username}（ID: {user_id}） 注册并签到成功。")
+        return
     else:
+        if user_data.get('user_id') is None:
+            reply_message = await update.message.reply_text("虎揍！你有号吗你就签到？")
+            # 等待五秒后删除用户消息和bot的回复
+            context.job_queue.run_once(delete_messages, 5, data={
+                'chat_id': chat_id,
+                'user_message_id': update.message.message_id,
+                'bot_message_id': reply_message.message_id
+            })
+            return
         today_zero = now.replace(hour=0, minute=0, second=0, microsecond=0)
         last_check_in = user_data.get('last_check_in')
         # 确保 last_check_in 是带时区的

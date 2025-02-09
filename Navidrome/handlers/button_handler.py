@@ -189,19 +189,12 @@ async def check_in(update: Update, context: CallbackContext):
         return
     now = get_now_utc()
     if not user_data:
-        # 如果用户不存在于数据库中，插入用户数据
-        users_collection.insert_one({
-            "telegram_id": user_id,
-            "username": user.username,
-            "last_check_in": now,
-            "created_at": now
-        })
-        nowstr = now.astimezone(CHINA_TZ).strftime('%Y-%m-%d %H:%M:%S')
-        await query.message.reply_text(f"签到成功！\n签到时间：{nowstr}")
-        await query.answer(text=f"签到成功！\n签到时间：{nowstr}", show_alert=True, cache_time=5)
-        logger.info(
-            f"新用户 {user.username}（ID: {user_id}） 注册并签到成功。")
+        await query.answer(text="虎揍！你有号吗你就签到？", show_alert=True, cache_time=5)
+        return
     else:
+        if user_data.get('user_id') is None:
+            await query.answer(text="虎揍！你有号吗你就签到？", show_alert=True, cache_time=5)
+            return
         today_zero = now.replace(hour=0, minute=0, second=0, microsecond=0)
         last_check_in = user_data.get('last_check_in')
         # 确保 last_check_in 是带时区的
