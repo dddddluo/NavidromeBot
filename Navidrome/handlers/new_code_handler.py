@@ -1,26 +1,14 @@
-import random
-import string
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 from database import exchange_codes_collection
 from handlers.permissions import admin_only
 from database import users_collection
-from util import delete_messages
+from util import delete_messages, new_exchange_code
 from config import TELEGRAM_BOT_NAME
 from log import logger
 
 
-# 生成兑换码的函数
-
-
-def new_exchange_code():
-    # 生成一个包含8个随机大写字母和数字的兑换码
-    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-    return code
-
 # 处理生成兑换码命令的函数
-
-
 @admin_only
 async def new_code(update: Update, context: CallbackContext):
     # 获取生成兑换码的数量，默认生成一个

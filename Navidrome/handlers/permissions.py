@@ -2,9 +2,9 @@ from functools import wraps
 from telegram import Update
 from telegram.ext import CallbackContext
 from config import ALLOWED_GROUP_IDS, ADMIN_ID, GROUP_INVITE_LINK
-from util import delete_messages
+from util import delete_messages, get_now_utc
 from telegram import ChatMember
-from datetime import timedelta
+from datetime import timedelta,datetime
 from log import logger
 
 
@@ -34,7 +34,8 @@ def admin_only(func):
             for group_id in ALLOWED_GROUP_IDS:
                 # 禁言用户五分钟
                 try:
-                    await context.bot.restrict_chat_member(group_id, user_id, permissions=None, until_date=update.message.date + timedelta(minutes=5))
+                    now = get_now_utc()
+                    await context.bot.restrict_chat_member(group_id, user_id, permissions=None, until_date=now + timedelta(minutes=5))
                 except Exception as e:
                     logger.error(f"Error restricting user {user_id} in group {group_id}: {e}")
             if query is not None:
