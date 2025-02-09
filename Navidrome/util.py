@@ -6,13 +6,15 @@ from log import logger
 
 async def delete_messages(context: CallbackContext):
     job = context.job
-    chat_id = job.data['chat_id']
-    user_message_id = job.data['user_message_id']
-    bot_message_id = job.data['bot_message_id']
+    chat_id = job.data.get('chat_id')
+    user_message_id = job.data.get('user_message_id')
+    bot_message_id = job.data.get('bot_message_id')
 
     try:
-        await context.bot.delete_message(chat_id, user_message_id)
-        await context.bot.delete_message(chat_id, bot_message_id)
+        if user_message_id:
+            await context.bot.delete_message(chat_id, user_message_id)
+        if bot_message_id:
+            await context.bot.delete_message(chat_id, bot_message_id)
         logger.info(
             f"Deleted messages {user_message_id} and {bot_message_id} from chat {chat_id}")
     except Exception as e:
