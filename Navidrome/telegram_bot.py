@@ -30,6 +30,7 @@ from handlers.broadcast_handler import (
 )
 from handlers.task_control_handler import task_control_menu, toggle_backup, toggle_time_user
 from error_handler import error_handler
+from handlers.mm_user_handler import MMUserHandler
 
 # 装饰现有处理函数
 start = restricted(start)
@@ -183,7 +184,7 @@ def main():
     dispatcher.add_handler(CallbackQueryHandler(toggle_time_user, pattern="^toggle_time_user$"))
     dispatcher.add_handler(CallbackQueryHandler(clear_all_codes, pattern="^clear_all_codes$"))
     dispatcher.add_handler(CallbackQueryHandler(delete_not_in_group, pattern="^delete_not_in_group$"))
-    
+    MMUserHandler().register_handlers(dispatcher)
     # 启动调度器
     delete_inactive_user_scheduler(dispatcher)
     set_bot_command_scheduler(dispatcher)
