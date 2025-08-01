@@ -31,6 +31,9 @@ async def start(update, context):
             else:
                 await asyncio.gather(update.effective_message.delete(), update.message.reply_text("兑换码无效"))
                 return ConversationHandler.END
+    else:
+        await asyncio.gather(update.effective_message.delete(), update.message.reply_text("请在私人聊天中使用"))
+        return ConversationHandler.END
     user = update.message.from_user if update.message else update.callback_query.from_user
     logger.info(f"User {user.username} started the conversation.")
 
