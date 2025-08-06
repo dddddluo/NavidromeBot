@@ -59,19 +59,24 @@ class MMUserHandler:
         buttons = []
         if user_info:
             # 用户存在，添加管理按钮
+            is_whitelist = whitelist_info is not None
+            
+            # 根据用户是否在白名单中显示不同的按钮
+            whitelist_button = InlineKeyboardButton(
+                "❌ 移除白名单", callback_data=f"removewhitelist_{target_user_id}") if is_whitelist else InlineKeyboardButton(
+                "🏆 赠送白名单", callback_data=f"givewhitelist_{target_user_id}")
+            
             buttons = [
                 [
                     InlineKeyboardButton(
                         "💢 删除账户", callback_data=f"deluser_{target_user_id}"),
-                    InlineKeyboardButton(
-                        "🏆 赠送白名单", callback_data=f"givewhitelist_{target_user_id}"),
+                    whitelist_button,
                 ],
                 [
                     InlineKeyboardButton(
                         "✅ 好的", callback_data=f"delmsg_{target_user_id}")
                 ]
             ]
-            is_whitelist = whitelist_info is not None
             last_check_in = user_info.get("last_check_in", "未知")
             if isinstance(last_check_in, datetime):
                 last_check_in = last_check_in.strftime('%Y-%m-%d %H:%M:%S')
@@ -135,6 +140,13 @@ class MMUserHandler:
                 upsert=True
             )
             await query.edit_message_text(f"🏆 已赠送白名单给{target_user.mention_markdown_v2()}", parse_mode='MarkdownV2', reply_markup=ok_keyboard)
+        elif action == "removewhitelist":
+            # 移除白名单
+            result = whitelist_collection.delete_one({"telegram_id": user_id})
+            if result.deleted_count > 0:
+                await query.edit_message_text(f"❌ 已移除{target_user.mention_markdown_v2()}的白名单", parse_mode='MarkdownV2', reply_markup=ok_keyboard)
+            else:
+                await query.edit_message_text(f"⚠️ {target_user.mention_markdown_v2()}不在白名单中", parse_mode='MarkdownV2', reply_markup=ok_keyboard)
         elif action == "delmsg":
             await query.message.delete()
 
@@ -142,4 +154,4 @@ class MMUserHandler:
         """注册处理程序"""
         application.add_handler(CommandHandler("mm", self.show_user_info))
         application.add_handler(CallbackQueryHandler(
-            self.handle_user_action, pattern="^(deluser|givereg|givewhitelist|delmsg)"))
+            self.handle_user_action, pattern="^(deluser|givereg|givewhitelist|removewhitelist|delmsg)"))
