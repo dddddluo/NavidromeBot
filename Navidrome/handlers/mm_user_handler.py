@@ -2,7 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 import re
 from handlers.permissions import admin_only
-from database import users_collection, exchange_codes_collection
+from database import users_collection, exchange_codes_collection, whitelist_collection
 import random
 from util import delete_messages, new_exchange_code, get_user_from_id, CHINA_TZ
 from datetime import datetime
@@ -51,6 +51,9 @@ class MMUserHandler:
         user_info = users_collection.with_options(codec_options=CodecOptions(
             tz_aware=True,
             tzinfo=CHINA_TZ)).find_one({"telegram_id": target_user_id})
+        whitelist_info = whitelist_collection.with_options(codec_options=CodecOptions(
+            tz_aware=True,
+            tzinfo=CHINA_TZ)).find_one({"telegram_id": target_user_id})
 
         # 准备按钮
         buttons = []
@@ -68,7 +71,7 @@ class MMUserHandler:
                         "✅ 好的", callback_data=f"delmsg_{target_user_id}")
                 ]
             ]
-            is_whitelist = user_info.get('whitelist', False)
+            is_whitelist = whitelist_info is not None
             last_check_in = user_info.get("last_check_in", "未知")
             if isinstance(last_check_in, datetime):
                 last_check_in = last_check_in.strftime('%Y-%m-%d %H:%M:%S')
@@ -126,9 +129,10 @@ class MMUserHandler:
             await context.bot.send_message(chat_id=update.effective_chat.id, text=f"{query.from_user.mention_markdown_v2()}为{target_user.mention_markdown_v2()}生成了一个兑换码\n开启你的音乐之旅吧！", parse_mode='MarkdownV2', reply_markup=reply_markup)
         elif action == "givewhitelist":
             # 赠送白名单
-            users_collection.update_one(
+            whitelist_collection.update_one(
                 {"telegram_id": user_id},
-                {"$set": {"whitelist": True}}
+                {"$set": {"telegram_id": user_id}},
+                upsert=True
             )
             await query.edit_message_text(f"🏆 已赠送白名单给{target_user.mention_markdown_v2()}", parse_mode='MarkdownV2', reply_markup=ok_keyboard)
         elif action == "delmsg":
