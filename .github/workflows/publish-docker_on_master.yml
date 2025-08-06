@@ -28,7 +28,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push gugustore images
+      - name: Build and push navidrome bot images
         uses: docker/build-push-action@v4
         with:
           context: .
