@@ -13,8 +13,6 @@ from handlers.message_handler import handle_message, cancel, timeout
 from handlers.button_handler import back_to_start, close, user_info, server_info, use_code, check_in, admin_menu_callback, back_to_admin
 from handlers.del_user_handler import del_user, handle_left_chat_member, delete_not_in_group
 from handlers.time_user_handler import check_in_handler, delete_inactive_user_scheduler
-from handlers.add_whitelist_handler import add_whitelist
-from handlers.del_whitelist_handler import del_whitelist
 from handlers.time_user_handler import delete_inactive_callback
 from handlers.reset_password_handler import reset_password
 from handlers.open_register_handler import open_register_user_callback, open_register_user_handler, open_register_admin_callback, open_register_admin_num_handler, close_register_admin_callback
@@ -50,8 +48,6 @@ check_in = restricted(check_in)
 server_info = restricted(server_info)
 use_code = restricted(use_code)
 del_user = restricted(del_user)
-add_whitelist = restricted(add_whitelist)
-del_whitelist = restricted(del_whitelist)
 delete_inactive_callback = restricted(delete_inactive_callback)
 delete_not_in_group = restricted(delete_not_in_group)
 admin_menu_callback = restricted(admin_menu_callback)
@@ -147,8 +143,6 @@ def main():
     dispatcher.add_handler(CommandHandler("new_code", new_code))
     dispatcher.add_handler(CommandHandler("na_token", na_token))
     dispatcher.add_handler(CommandHandler("del_user", del_user))
-    dispatcher.add_handler(CommandHandler("add_whitelist", add_whitelist))
-    dispatcher.add_handler(CommandHandler("del_whitelist", del_whitelist))
     
     # 2. 添加消息处理器
     dispatcher.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, handle_left_chat_member))
