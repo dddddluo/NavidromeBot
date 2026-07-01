@@ -1,7 +1,7 @@
 from functools import wraps
 from telegram import Update
-from telegram.ext import CallbackContext
-from config import ALLOWED_GROUP_IDS, ADMIN_ID, GROUP_INVITE_LINK
+from telegram.ext import CallbackContext, ConversationHandler
+from config import ALLOWED_GROUP_IDS, ADMIN_ID, GROUP_INVITE_LINK, START_PIC
 from util import delete_messages, get_now_utc
 from telegram import ChatMember
 from datetime import timedelta,datetime
@@ -48,7 +48,7 @@ def admin_only(func):
                     'user_message_id': update.message.message_id,
                     'bot_message_id': warning_message.message_id
                 })
-            return
+            return ConversationHandler.END
         return await func(update, context)
     return wrapper
 
@@ -65,7 +65,7 @@ def private_only(func):
                 'user_message_id': update.message.message_id,
                 'bot_message_id': warning_message.message_id
             })
-            return
+            return ConversationHandler.END
         return await func(update, context)
     return wrapper
 
@@ -82,10 +82,17 @@ def restricted(func):
                 return await func(update, context, *args, **kwargs)
             else:
                 logger.info(f"User {update.effective_user.id} is not allowed to use the bot in private chat.")
-                await update.message.reply_text(
-                    f"抱歉，您不在群组中。\n请加入群组: [点击这里]({GROUP_INVITE_LINK})",
+                if update.callback_query:
+                    try:
+                        await update.callback_query.answer()
+                    except Exception as e:
+                        logger.warning(f"Failed to answer callback query: {e}")
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=START_PIC,
+                    caption=f"抱歉，您不在群组中。\n请加入群组: [点击这里]({GROUP_INVITE_LINK})",
                     parse_mode='MarkdownV2'
                 )
-                return
+                return ConversationHandler.END
         return await func(update, context, *args, **kwargs)
     return wrapper
